@@ -1,5 +1,13 @@
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers, DisconnectReason, generateWAMessageFromContent } = require('@whiskeysockets/baileys');
+const { 
+    default: makeWASocket, 
+    useMultiFileAuthState, 
+    fetchLatestBaileysVersion, 
+    Browsers, 
+    DisconnectReason, 
+    generateWAMessageFromContent,
+    proto // 🚀 Zaroori import copy button ke liye
+} = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
