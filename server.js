@@ -1,5 +1,5 @@
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// 🌐 KOSEM PREMIUM 3D GLASSMORPHISM FRONTEND (QR + PAIRING CODE)
+// 🌐 KOSEM PREMIUM FRONTEND (WITH SMOOTH ANIMATIONS)
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -71,13 +71,25 @@ app.get('/', (req, res) => {
                 }
                 .action-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(255, 62, 108, 0.5); }
                 
+                /* SMOOTH ANIMATION CLASSES */
+                .tab-content { display: none; }
+                .tab-content.active {
+                    display: block;
+                    animation: fadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                }
+
+                @keyframes fadeSlideUp {
+                    from { opacity: 0; transform: translateY(15px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                
                 #code-container, #qr-result { margin-top: 30px; }
                 .code-box {
                     font-size: 32px; font-weight: bold; letter-spacing: 4px; background: rgba(255, 255, 255, 0.1);
                     padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2);
                     display: inline-block; margin-bottom: 15px; color: #fff; text-shadow: 0 2px 10px rgba(255,255,255,0.3);
                 }
-                .qr-image { border-radius: 12px; border: 3px solid #ff3e6c; padding: 10px; background: white; margin-bottom: 15px; }
+                .qr-image { border-radius: 12px; border: 3px solid #ff3e6c; padding: 10px; background: white; margin-bottom: 15px; width: 200px; height: 200px; }
                 .instructions { font-size: 13px; color: rgba(255, 255, 255, 0.6); }
                 .loading { color: #00f2fe; font-weight: 500; animation: pulse 1.5s infinite; }
                 .error { color: #ff3e6c; font-weight: 500; }
@@ -96,24 +108,38 @@ app.get('/', (req, res) => {
                     <div class="toggle-btn" id="btn-qr" onclick="switchTab('qr')">QR Code</div>
                 </div>
 
-                <div id="section-phone">
+                <div id="section-phone" class="tab-content active">
                     <input type="number" id="number" placeholder="e.g. 923001234567">
                     <button class="action-btn" onclick="getPairCode()">Generate Code</button>
                     <div id="code-container"></div>
                 </div>
 
-                <div id="section-qr" style="display: none;">
+                <div id="section-qr" class="tab-content">
                     <button class="action-btn" onclick="getQRCode()">Generate QR</button>
                     <div id="qr-result"></div>
                 </div>
             </div>
 
             <script>
+                // ANIMATED TAB SWITCHING LOGIC
                 function switchTab(tab) {
-                    document.getElementById('section-phone').style.display = tab === 'phone' ? 'block' : 'none';
-                    document.getElementById('section-qr').style.display = tab === 'qr' ? 'block' : 'none';
-                    document.getElementById('btn-phone').className = tab === 'phone' ? 'toggle-btn active' : 'toggle-btn';
-                    document.getElementById('btn-qr').className = tab === 'qr' ? 'toggle-btn active' : 'toggle-btn';
+                    const phoneSection = document.getElementById('section-phone');
+                    const qrSection = document.getElementById('section-qr');
+                    const btnPhone = document.getElementById('btn-phone');
+                    const btnQr = document.getElementById('btn-qr');
+
+                    if (tab === 'phone') {
+                        qrSection.classList.remove('active');
+                        setTimeout(() => { phoneSection.classList.add('active'); }, 50);
+                        btnPhone.className = 'toggle-btn active';
+                        btnQr.className = 'toggle-btn';
+                    } else {
+                        phoneSection.classList.remove('active');
+                        setTimeout(() => { qrSection.classList.add('active'); }, 50);
+                        btnQr.className = 'toggle-btn active';
+                        btnPhone.className = 'toggle-btn';
+                    }
+                    
                     document.getElementById('code-container').innerHTML = '';
                     document.getElementById('qr-result').innerHTML = '';
                 }
@@ -158,7 +184,7 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 📡 API: PAIRING CODE GENERATOR
+// 📡 API: PAIRING CODE GENERATOR (macOS Anti-Block)
 // ==========================================
 app.get('/code', async (req, res) => {
     let phoneNumber = req.query.number;
@@ -171,18 +197,25 @@ app.get('/code', async (req, res) => {
 
     try {
         const sock = makeWASocket({
-            version, auth: state, logger: pino({ level: 'silent' }), printQRInTerminal: false,
-            browser: ['Chrome', 'Windows', '10.0'], syncFullHistory: false, markOnlineOnConnect: false
+            version, 
+            auth: state, 
+            logger: pino({ level: 'silent' }), 
+            printQRInTerminal: false,
+            // 🚀 FIX: WhatsApp ko lagay ga yeh ek asli Apple Mac hai, block nahi hoga
+            browser: Browsers.macOS('Desktop'), 
+            syncFullHistory: false, 
+            markOnlineOnConnect: false
         });
 
         if (!sock.authState.creds.registered) {
+            // Socket connect hone ka theek 4 second intezar phir code request
             setTimeout(async () => {
                 try {
                     let code = await sock.requestPairingCode(phoneNumber);
                     code = code?.match(/.{1,4}/g)?.join('-') || code;
                     res.json({ code });
                 } catch (err) { res.json({ error: 'Failed to generate code.' }); }
-            }, 5000); 
+            }, 4000); 
         }
 
         handleSessionConnection(sock, saveCreds, tempSessionName);
@@ -190,7 +223,7 @@ app.get('/code', async (req, res) => {
 });
 
 // ==========================================
-// 📡 API: QR CODE GENERATOR
+// 📡 API: QR CODE GENERATOR (macOS Anti-Block)
 // ==========================================
 app.get('/api/qr', async (req, res) => {
     const tempSessionName = `kosem_qr_${Date.now()}`;
@@ -199,20 +232,24 @@ app.get('/api/qr', async (req, res) => {
 
     try {
         const sock = makeWASocket({
-            version, auth: state, logger: pino({ level: 'silent' }), printQRInTerminal: false,
-            browser: ['Kosem', 'Chrome', '10.0'], syncFullHistory: false, markOnlineOnConnect: false
+            version, 
+            auth: state, 
+            logger: pino({ level: 'silent' }), 
+            printQRInTerminal: false,
+            // 🚀 FIX: macOS Signature for QR as well
+            browser: Browsers.macOS('Desktop'), 
+            syncFullHistory: false, 
+            markOnlineOnConnect: false
         });
 
         let qrSent = false;
 
         sock.ev.on('connection.update', async (update) => {
             const { qr, connection } = update;
-            // Jab QR generate ho toh usay API ke zariye frontend ko bhej dein
             if (qr && !qrSent) {
                 qrSent = true;
                 res.json({ qr: qr });
             }
-            // Agar connect ho gaya toh timeout/close ka intezar kiye bina cleanup and send session
             if (connection === 'open' || connection === 'close') {
                 if(!qrSent && connection === 'close'){
                     if (!res.headersSent) res.json({ error: 'Failed to generate QR.' });
@@ -227,7 +264,7 @@ app.get('/api/qr', async (req, res) => {
 });
 
 // ==========================================
-// 🔄 UNIVERSAL SESSION HANDLER (For both QR & Code)
+// 🔄 UNIVERSAL SESSION HANDLER 
 // ==========================================
 function handleSessionConnection(sock, saveCreds, tempSessionName) {
     sock.ev.on('creds.update', saveCreds);
