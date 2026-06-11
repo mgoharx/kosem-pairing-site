@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// 🌐 KOSEM PREMIUM FRONTEND (GREYSCALE GLASSMORPHISM WITH SOFT REALISTIC SHADOWS)
+// 🌐 KOSEM PREMIUM FRONTEND 
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -26,7 +26,6 @@ app.get('/', (req, res) => {
                     background: linear-gradient(135deg, #111111, #000000, #1a1a1a);
                     color: #ffffff; display: flex; justify-content: center; align-items: center; overflow: hidden;
                 }
-                
                 .circle1, .circle2 {
                     position: absolute; border-radius: 50%; filter: blur(90px); z-index: 0;
                     animation: float 8s ease-in-out infinite alternate;
@@ -35,18 +34,12 @@ app.get('/', (req, res) => {
                 .circle2 { width: 400px; height: 400px; background: rgba(255, 255, 255, 0.06); bottom: -10%; right: -10%; animation-delay: -4s; }
                 @keyframes float { 0% { transform: translateY(0); } 100% { transform: translateY(20px); } }
 
-                /* 🚀 FIXED: ULTRA SOFT AMBIENT LAYERED SHADOWS 🚀 */
                 .glass-card {
                     position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 40px 30px;
                     background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(30px);
                     -webkit-backdrop-filter: blur(30px);
                     border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px;
-                    
-                    /* Real Multi-layered Diffuse Drop Shadow (No solid black block feel) */
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 
-                                0 20px 40px -10px rgba(0, 0, 0, 0.6), 
-                                0 40px 80px -15px rgba(0, 0, 0, 0.8);
-                                
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 40px 80px -15px rgba(0, 0, 0, 0.8);
                     text-align: center; box-sizing: border-box;
                     transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); overflow: hidden;
                 }
@@ -61,11 +54,7 @@ app.get('/', (req, res) => {
                 input { width: 100%; padding: 16px; margin-bottom: 20px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: white; text-align: center; outline: none; box-sizing: border-box; transition: all 0.3s ease; }
                 input:focus { background: rgba(0, 0, 0, 0.5); border-color: rgba(255, 255, 255, 0.3); box-shadow: 0 0 15px rgba(255, 255, 255, 0.05); }
                 
-                /* 🚀 FIXED: BUTTON SOFT DEFIUSE SHADOW 🚀 */
-                .action-btn { 
-                    width: 100%; padding: 16px; background: #ffffff; color: #000000; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; 
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease; 
-                }
+                .action-btn { width: 100%; padding: 16px; background: #ffffff; color: #000000; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease; }
                 .action-btn:hover { background: #f0f0f0; transform: translateY(-1px); box-shadow: 0 6px 15px rgba(0,0,0,0.3); }
                 .action-btn:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
                 
@@ -194,7 +183,7 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 📡 API: PAIRING CODE GENERATOR (macOS Anti-Block)
+// 📡 API: SMART PAIRING CODE GENERATOR
 // ==========================================
 app.get('/code', async (req, res) => {
     let phoneNumber = req.query.number;
@@ -207,26 +196,59 @@ app.get('/code', async (req, res) => {
 
     try {
         const sock = makeWASocket({
-            version, auth: state, logger: pino({ level: 'silent' }), printQRInTerminal: false,
-            browser: Browsers.macOS('Desktop'), syncFullHistory: false, markOnlineOnConnect: false
+            version, 
+            auth: state, 
+            logger: pino({ level: 'silent' }), 
+            printQRInTerminal: false,
+            // 🚀 FIX: Ubuntu Chrome signature Cloud IP block bypass karta hai
+            browser: ['Ubuntu', 'Chrome', '20.0.04'], 
+            syncFullHistory: false, 
+            markOnlineOnConnect: false,
+            connectTimeoutMs: 60000,
+            keepAliveIntervalMs: 10000
         });
 
         if (!sock.authState.creds.registered) {
+            let codeRequested = false;
+
+            // 🚀 SMART TRIGGER: Jab WhatsApp connection ready hone ka ishara karega tab code maangenge
+            sock.ev.on('connection.update', async (update) => {
+                const { qr } = update;
+                if (qr && !codeRequested) {
+                    codeRequested = true;
+                    try {
+                        let code = await sock.requestPairingCode(phoneNumber);
+                        code = code?.match(/.{1,4}/g)?.join('-') || code;
+                        if (!res.headersSent) res.json({ code });
+                    } catch (err) {
+                        if (!res.headersSent) res.json({ error: 'WhatsApp Server rejected request.' });
+                    }
+                }
+            });
+
+            // Fallback: Agar socket late ho jaye toh 4 seconds baad try karein
             setTimeout(async () => {
-                try {
-                    let code = await sock.requestPairingCode(phoneNumber);
-                    code = code?.match(/.{1,4}/g)?.join('-') || code;
-                    res.json({ code });
-                } catch (err) { res.json({ error: 'Failed to generate code.' }); }
+                if (!codeRequested) {
+                    codeRequested = true;
+                    try {
+                        let code = await sock.requestPairingCode(phoneNumber);
+                        code = code?.match(/.{1,4}/g)?.join('-') || code;
+                        if (!res.headersSent) res.json({ code });
+                    } catch (err) {
+                        if (!res.headersSent) res.json({ error: 'Failed to generate code.' });
+                    }
+                }
             }, 4000); 
         }
 
         handleSessionConnection(sock, saveCreds, tempSessionName);
-    } catch (e) { res.status(500).json({ error: 'Server error' }); }
+    } catch (e) { 
+        if (!res.headersSent) res.status(500).json({ error: 'Server error' }); 
+    }
 });
 
 // ==========================================
-// 📡 API: QR CODE GENERATOR (macOS Anti-Block)
+// 📡 API: SMART QR CODE GENERATOR
 // ==========================================
 app.get('/api/qr', async (req, res) => {
     const tempSessionName = `kosem_qr_${Date.now()}`;
@@ -235,8 +257,13 @@ app.get('/api/qr', async (req, res) => {
 
     try {
         const sock = makeWASocket({
-            version, auth: state, logger: pino({ level: 'silent' }), printQRInTerminal: false,
-            browser: Browsers.macOS('Desktop'), syncFullHistory: false, markOnlineOnConnect: false
+            version, 
+            auth: state, 
+            logger: pino({ level: 'silent' }), 
+            printQRInTerminal: false,
+            browser: ['Ubuntu', 'Chrome', '20.0.04'], 
+            syncFullHistory: false, 
+            markOnlineOnConnect: false
         });
 
         let qrSent = false;
@@ -245,7 +272,7 @@ app.get('/api/qr', async (req, res) => {
             const { qr, connection } = update;
             if (qr && !qrSent) {
                 qrSent = true;
-                res.json({ qr: qr });
+                if (!res.headersSent) res.json({ qr: qr });
             }
             if (connection === 'close' && !qrSent) {
                 if (!res.headersSent) res.json({ error: 'Failed to generate QR.' });
@@ -253,7 +280,9 @@ app.get('/api/qr', async (req, res) => {
         });
 
         handleSessionConnection(sock, saveCreds, tempSessionName);
-    } catch (e) { if (!res.headersSent) res.status(500).json({ error: 'Server error' }); }
+    } catch (e) { 
+        if (!res.headersSent) res.status(500).json({ error: 'Server error' }); 
+    }
 });
 
 // ==========================================
