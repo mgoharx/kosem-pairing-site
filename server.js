@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// 🌐 KOSEM PREMIUM FRONTEND (ULTRA SMOOTH iOS ANIMATION)
+// 🌐 KOSEM PREMIUM FRONTEND (ULTRA SMOOTH BOX ANIMATION + iOS FEEL)
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -36,14 +36,19 @@ app.get('/', (req, res) => {
                     0% { transform: translateY(0) scale(1); }
                     100% { transform: translateY(30px) scale(1.1); }
                 }
+
+                /* 🚀 ORGANIC 3D Glassmorphism Card 🚀 */
                 .glass-card {
                     position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 40px 30px;
                     background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(25px);
                     -webkit-backdrop-filter: blur(25px);
                     border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px;
                     box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4); text-align: center; box-sizing: border-box;
-                    min-height: 450px; /* Card ki height fix ki hai taake jhatka na lage */
+                    /* Height Auto Animation ke liye */
+                    transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+                    overflow: hidden; 
                 }
+
                 h2 { margin: 0 0 10px; font-size: 28px; font-weight: 700; letter-spacing: 1px; }
                 p { color: rgba(255, 255, 255, 0.7); font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
                 
@@ -57,8 +62,6 @@ app.get('/', (req, res) => {
                     font-size: 14px; transition: color 0.3s; z-index: 2; position: relative;
                 }
                 .toggle-btn.active { color: white; }
-                
-                /* Sliding background for toggle buttons */
                 .toggle-bg {
                     position: absolute; top: 0; left: 0; width: 50%; height: 100%;
                     background: #ff3e6c; border-radius: 12px; z-index: 1;
@@ -79,11 +82,9 @@ app.get('/', (req, res) => {
                 }
                 .action-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(255, 62, 108, 0.5); }
                 
-                /* 🚀 TRUE SMOOTH ANIMATION CLASSES 🚀 */
+                /* Cross Fade Animations */
                 .tab-content { 
-                    display: none; 
-                    opacity: 0; 
-                    transform: translateY(15px); 
+                    display: none; opacity: 0; transform: translateY(15px); 
                     transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
                 }
                 .tab-content.active { display: block; }
@@ -95,7 +96,7 @@ app.get('/', (req, res) => {
                     padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2);
                     display: inline-block; margin-bottom: 15px; color: #fff; text-shadow: 0 2px 10px rgba(255,255,255,0.3);
                 }
-                .qr-image { border-radius: 12px; border: 3px solid #ff3e6c; padding: 10px; background: white; margin-bottom: 15px; width: 200px; height: 200px; }
+                .qr-image { border-radius: 12px; border: 3px solid #ff3e6c; padding: 10px; background: white; margin-bottom: 15px; }
                 .instructions { font-size: 13px; color: rgba(255, 255, 255, 0.6); }
                 .loading { color: #00f2fe; font-weight: 500; animation: pulse 1.5s infinite; }
                 .error { color: #ff3e6c; font-weight: 500; }
@@ -105,7 +106,7 @@ app.get('/', (req, res) => {
         <body>
             <div class="circle1"></div>
             <div class="circle2"></div>
-            <div class="glass-card">
+            <div class="glass-card" id="main-card">
                 <h2>Kosem Bot</h2>
                 <p>Choose a method to link your device securely.</p>
                 
@@ -128,20 +129,38 @@ app.get('/', (req, res) => {
             </div>
 
             <script>
-                // 🚀 BUTTERY SMOOTH CROSS-FADE LOGIC
+                // 🚀 DYNAMIC ORGANIC HEIGHT CALCULATOR 🚀
+                function animateHTMLChange(element, newHTML) {
+                    const card = document.getElementById('main-card');
+                    const startHeight = card.offsetHeight;
+                    card.style.height = startHeight + 'px'; // Lock current height
+                    
+                    element.innerHTML = newHTML; // Inject new HTML
+                    
+                    card.style.height = 'auto'; // Temporarily set auto to measure
+                    const targetHeight = card.offsetHeight;
+                    card.style.height = startHeight + 'px'; // Revert back
+                    
+                    void card.offsetHeight; // Force reflow (Magic step for CSS transition)
+                    card.style.height = targetHeight + 'px'; // Animate to new height
+                    
+                    setTimeout(() => { card.style.height = 'auto'; }, 400); // Cleanup after transition
+                }
+
                 function switchTab(tab) {
                     const phoneSection = document.getElementById('section-phone');
                     const qrSection = document.getElementById('section-qr');
                     const btnPhone = document.getElementById('btn-phone');
                     const btnQr = document.getElementById('btn-qr');
                     const toggleBg = document.getElementById('toggle-bg');
+                    const card = document.getElementById('main-card');
 
                     const targetSection = tab === 'phone' ? phoneSection : qrSection;
                     const activeSection = document.querySelector('.tab-content.show') || document.querySelector('.tab-content.active');
                     
                     if (activeSection === targetSection) return;
 
-                    // Slider Animation for Toggle Buttons
+                    // Slider Animation
                     if (tab === 'phone') {
                         toggleBg.style.transform = 'translateX(0)';
                         btnPhone.classList.add('active');
@@ -152,57 +171,70 @@ app.get('/', (req, res) => {
                         btnPhone.classList.remove('active');
                     }
 
-                    // Step 1: Smooth Fade Out
+                    // 1. Lock Height
+                    const startHeight = card.offsetHeight;
+                    card.style.height = startHeight + 'px';
+
+                    // 2. Fade Out
                     activeSection.classList.remove('show');
                     
-                    // Step 2: Wait for fade out, then swap visibility
                     setTimeout(() => {
+                        // 3. Swap Elements
                         activeSection.classList.remove('active');
                         targetSection.classList.add('active');
-                        
-                        // Clear old generated content
                         document.getElementById('code-container').innerHTML = '';
                         document.getElementById('qr-result').innerHTML = '';
-
-                        // Step 3: Smooth Fade In
+                        
+                        // 4. Measure New Height
+                        card.style.height = 'auto';
+                        const targetHeight = card.offsetHeight;
+                        card.style.height = startHeight + 'px'; 
+                        void card.offsetHeight; 
+                        
+                        // 5. Expand / Shrink Smoothly
+                        card.style.height = targetHeight + 'px';
+                        
+                        // 6. Fade In New Content
                         setTimeout(() => {
                             targetSection.classList.add('show');
-                        }, 30); // Tiny delay for CSS to register display:block
-                    }, 350); // Matches CSS transition duration
+                            setTimeout(() => { card.style.height = 'auto'; }, 400);
+                        }, 30);
+                    }, 350); 
                 }
 
                 async function getPairCode() {
                     const num = document.getElementById('number').value;
                     const container = document.getElementById('code-container');
-                    if(!num) return container.innerHTML = '<span class="error">Please enter a valid phone number.</span>';
+                    if(!num) return animateHTMLChange(container, '<span class="error">Please enter a valid phone number.</span>');
                     
-                    container.innerHTML = '<span class="loading">Establishing secure connection... Please wait.</span>';
+                    animateHTMLChange(container, '<span class="loading">Establishing secure connection... Please wait.</span>');
                     try {
                         const response = await fetch('/code?number=' + num);
                         const data = await response.json();
                         if(data.code) {
-                            container.innerHTML = \`
+                            animateHTMLChange(container, \`
                                 <div class="code-box">\${data.code}</div>
                                 <div class="instructions">Open WhatsApp > Linked Devices > Link with phone number instead.<br><br>Session ID will be sent to your WhatsApp.</div>
-                            \`;
-                        } else { container.innerHTML = \`<span class="error">Error: \${data.error}</span>\`; }
-                    } catch(e) { container.innerHTML = '<span class="error">Connection timeout. Please try again.</span>'; }
+                            \`);
+                        } else { animateHTMLChange(container, \`<span class="error">Error: \${data.error}</span>\`); }
+                    } catch(e) { animateHTMLChange(container, '<span class="error">Connection timeout. Please try again.</span>'); }
                 }
 
                 async function getQRCode() {
                     const container = document.getElementById('qr-result');
-                    container.innerHTML = '<span class="loading">Generating QR Code... Please wait.</span>';
+                    animateHTMLChange(container, '<span class="loading">Generating QR Code... Please wait.</span>');
                     try {
                         const response = await fetch('/api/qr');
                         const data = await response.json();
                         if(data.qr) {
+                            // Image width height specifically declared for perfect animation calculation
                             const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=' + encodeURIComponent(data.qr);
-                            container.innerHTML = \`
-                                <img src="\${qrUrl}" class="qr-image" alt="QR Code">
+                            animateHTMLChange(container, \`
+                                <img src="\${qrUrl}" width="200" height="200" class="qr-image" alt="QR Code">
                                 <div class="instructions">Scan this QR code from WhatsApp > Linked Devices.<br><br>Your Session ID will be sent to your inbox.</div>
-                            \`;
-                        } else { container.innerHTML = \`<span class="error">Error generating QR.</span>\`; }
-                    } catch(e) { container.innerHTML = '<span class="error">Timeout. Try again.</span>'; }
+                            \`);
+                        } else { animateHTMLChange(container, \`<span class="error">Error generating QR.</span>\`); }
+                    } catch(e) { animateHTMLChange(container, '<span class="error">Timeout. Try again.</span>'); }
                 }
             </script>
         </body>
@@ -224,13 +256,8 @@ app.get('/code', async (req, res) => {
 
     try {
         const sock = makeWASocket({
-            version, 
-            auth: state, 
-            logger: pino({ level: 'silent' }), 
-            printQRInTerminal: false,
-            browser: Browsers.macOS('Desktop'), 
-            syncFullHistory: false, 
-            markOnlineOnConnect: false
+            version, auth: state, logger: pino({ level: 'silent' }), printQRInTerminal: false,
+            browser: Browsers.macOS('Desktop'), syncFullHistory: false, markOnlineOnConnect: false
         });
 
         if (!sock.authState.creds.registered) {
@@ -257,13 +284,8 @@ app.get('/api/qr', async (req, res) => {
 
     try {
         const sock = makeWASocket({
-            version, 
-            auth: state, 
-            logger: pino({ level: 'silent' }), 
-            printQRInTerminal: false,
-            browser: Browsers.macOS('Desktop'), 
-            syncFullHistory: false, 
-            markOnlineOnConnect: false
+            version, auth: state, logger: pino({ level: 'silent' }), printQRInTerminal: false,
+            browser: Browsers.macOS('Desktop'), syncFullHistory: false, markOnlineOnConnect: false
         });
 
         let qrSent = false;
