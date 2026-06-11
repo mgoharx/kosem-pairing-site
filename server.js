@@ -5,13 +5,17 @@ const {
     fetchLatestBaileysVersion, 
     Browsers, 
     DisconnectReason,
-    generateWAMessageFromContent, // 🚀 Naya Import Button Ke Liye
-    proto // 🚀 Naya Import Button Ke Liye
+    generateWAMessageFromContent, 
+    proto 
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+
+// 🛡️ ANTI-CRASH SYSTEM (Server ko band hone se rokne ke liye)
+process.on('uncaughtException', (err) => console.error('Uncaught Exception:', err));
+process.on('unhandledRejection', (err) => console.error('Unhandled Rejection:', err));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -178,32 +182,39 @@ app.get('/', (req, res) => {
 // 🚀 FUNCTION: SEND INTERACTIVE COPY BUTTON
 // ==========================================
 async function sendSessionWithButton(sock, finalSessionId) {
-    const msgText = \`👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n\`\`\`\${finalSessionId}\`\`\`\n\n_Keep this token secure and do not share it with anyone._\`;
+    // 🛡️ SYNTAX FIXED: Safe string concatenation used instead of backticks
+    const msgText = "👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n```" + finalSessionId + "```\n\n_Keep this token secure and do not share it with anyone._";
 
-    const interactiveMessage = {
-        viewOnceMessage: {
-            message: {
-                interactiveMessage: proto.Message.InteractiveMessage.create({
-                    body: proto.Message.InteractiveMessage.Body.create({ text: msgText }),
-                    footer: proto.Message.InteractiveMessage.Footer.create({ text: "> POWERED BY KOSEM BOT" }),
-                    header: proto.Message.InteractiveMessage.Header.create({ hasMediaAttachment: false }),
-                    nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
-                        buttons: [{
-                            name: "cta_copy",
-                            buttonParamsJson: JSON.stringify({
-                                display_text: "📋 Copy Session",
-                                id: "copy_code",
-                                copy_code: finalSessionId
-                            })
-                        }]
+    try {
+        const interactiveMessage = {
+            viewOnceMessage: {
+                message: {
+                    interactiveMessage: proto.Message.InteractiveMessage.create({
+                        body: proto.Message.InteractiveMessage.Body.create({ text: msgText }),
+                        footer: proto.Message.InteractiveMessage.Footer.create({ text: "> POWERED BY KOSEM BOT" }),
+                        header: proto.Message.InteractiveMessage.Header.create({ hasMediaAttachment: false }),
+                        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
+                            buttons: [{
+                                name: "cta_copy",
+                                buttonParamsJson: JSON.stringify({
+                                    display_text: "📋 Copy Session",
+                                    id: "copy_code",
+                                    copy_code: finalSessionId
+                                })
+                            }]
+                        })
                     })
-                })
+                }
             }
-        }
-    };
+        };
 
-    const msg = generateWAMessageFromContent(sock.user.id, interactiveMessage, { userJid: sock.user.id });
-    await sock.relayMessage(sock.user.id, msg.message, { messageId: msg.key.id });
+        const msg = generateWAMessageFromContent(sock.user.id, interactiveMessage, { userJid: sock.user.id });
+        await sock.relayMessage(sock.user.id, msg.message, { messageId: msg.key.id });
+    } catch (err) {
+        // Fallback agar button fail ho jaye (Server crash na ho)
+        console.log("Button fail hua, simple message bhej raha hoon...");
+        await sock.sendMessage(sock.user.id, { text: msgText });
+    }
 }
 
 // ==========================================
@@ -214,7 +225,7 @@ app.get('/code', async (req, res) => {
     if (!phoneNumber) return res.status(400).json({ error: 'Number is required' });
     phoneNumber = phoneNumber.replace(/[^0-9]/g, '');
 
-    const tempSessionName = \`kosem_\${Date.now()}\`;
+    const tempSessionName = `kosem_${Date.now()}`;
     const sessionPath = path.join(__dirname, tempSessionName);
 
     async function startKosem() {
@@ -253,9 +264,8 @@ app.get('/code', async (req, res) => {
                     const credsData = fs.readFileSync(path.join(sessionPath, 'creds.json'));
                     const compressed = zlib.gzipSync(credsData);
                     const base64Session = compressed.toString('base64');
-                    const finalSessionId = \`Kosem!\${base64Session}\`;
+                    const finalSessionId = `Kosem!${base64Session}`;
                     
-                    // 🚀 Yahan humne naya Copy Button wala function call kiya hai
                     await sendSessionWithButton(sock, finalSessionId);
 
                     setTimeout(() => {
@@ -286,7 +296,7 @@ app.get('/code', async (req, res) => {
 // 📡 API: SMART QR CODE GENERATOR
 // ==========================================
 app.get('/api/qr', async (req, res) => {
-    const tempSessionName = \`kosem_qr_\${Date.now()}\`;
+    const tempSessionName = `kosem_qr_${Date.now()}`;
     const sessionPath = path.join(__dirname, tempSessionName);
 
     async function startKosemQR() {
@@ -317,9 +327,8 @@ app.get('/api/qr', async (req, res) => {
                     const credsData = fs.readFileSync(path.join(sessionPath, 'creds.json'));
                     const compressed = zlib.gzipSync(credsData);
                     const base64Session = compressed.toString('base64');
-                    const finalSessionId = \`Kosem!\${base64Session}\`;
+                    const finalSessionId = `Kosem!${base64Session}`;
                     
-                    // 🚀 Yahan humne naya Copy Button wala function call kiya hai
                     await sendSessionWithButton(sock, finalSessionId);
 
                     setTimeout(() => {
@@ -348,5 +357,5 @@ app.get('/api/qr', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(\`🚀 Kosem Pairing Server live on port \${PORT}\`);
+    console.log(`🚀 Kosem Pairing Server live on port ${PORT}`);
 });
