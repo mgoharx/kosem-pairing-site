@@ -1,5 +1,5 @@
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers, DisconnectReason } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// 🌐 KOSEM PREMIUM FRONTEND 
+// 🌐 KOSEM PREMIUM FRONTEND
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -20,29 +20,13 @@ app.get('/', (req, res) => {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Kosem Pairing System</title>
             <style>
-                body, html {
-                    margin: 0; padding: 0; height: 100%;
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                    background: linear-gradient(135deg, #111111, #000000, #1a1a1a);
-                    color: #ffffff; display: flex; justify-content: center; align-items: center; overflow: hidden;
-                }
-                .circle1, .circle2 {
-                    position: absolute; border-radius: 50%; filter: blur(90px); z-index: 0;
-                    animation: float 8s ease-in-out infinite alternate;
-                }
+                body, html { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #111111, #000000, #1a1a1a); color: #ffffff; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+                .circle1, .circle2 { position: absolute; border-radius: 50%; filter: blur(90px); z-index: 0; animation: float 8s ease-in-out infinite alternate; }
                 .circle1 { width: 350px; height: 350px; background: rgba(255, 255, 255, 0.04); top: -10%; left: -10%; }
                 .circle2 { width: 400px; height: 400px; background: rgba(255, 255, 255, 0.06); bottom: -10%; right: -10%; animation-delay: -4s; }
                 @keyframes float { 0% { transform: translateY(0); } 100% { transform: translateY(20px); } }
 
-                .glass-card {
-                    position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 40px 30px;
-                    background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(30px);
-                    -webkit-backdrop-filter: blur(30px);
-                    border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px;
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 40px 80px -15px rgba(0, 0, 0, 0.8);
-                    text-align: center; box-sizing: border-box;
-                    transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); overflow: hidden;
-                }
+                .glass-card { position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 40px 30px; background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 40px 80px -15px rgba(0, 0, 0, 0.8); text-align: center; box-sizing: border-box; transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); overflow: hidden; }
                 h2 { margin: 0 0 10px; font-size: 28px; font-weight: 700; letter-spacing: 1px; }
                 p { color: rgba(255, 255, 255, 0.5); font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
                 
@@ -191,71 +175,13 @@ app.get('/code', async (req, res) => {
     phoneNumber = phoneNumber.replace(/[^0-9]/g, '');
 
     const tempSessionName = `kosem_${Date.now()}`;
-    const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, tempSessionName));
-    const { version } = await fetchLatestBaileysVersion();
+    const sessionPath = path.join(__dirname, tempSessionName);
 
-    try {
-        const sock = makeWASocket({
-            version, 
-            auth: state, 
-            logger: pino({ level: 'silent' }), 
-            printQRInTerminal: false,
-            // 🚀 FIX: Ubuntu Chrome signature Cloud IP block bypass karta hai
-            browser: ['Ubuntu', 'Chrome', '20.0.04'], 
-            syncFullHistory: false, 
-            markOnlineOnConnect: false,
-            connectTimeoutMs: 60000,
-            keepAliveIntervalMs: 10000
-        });
+    // 🚀 THE FIX: Recursive Function to handle WhatsApp 515 Reconnects
+    async function startKosem() {
+        const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+        const { version } = await fetchLatestBaileysVersion();
 
-        if (!sock.authState.creds.registered) {
-            let codeRequested = false;
-
-            // 🚀 SMART TRIGGER: Jab WhatsApp connection ready hone ka ishara karega tab code maangenge
-            sock.ev.on('connection.update', async (update) => {
-                const { qr } = update;
-                if (qr && !codeRequested) {
-                    codeRequested = true;
-                    try {
-                        let code = await sock.requestPairingCode(phoneNumber);
-                        code = code?.match(/.{1,4}/g)?.join('-') || code;
-                        if (!res.headersSent) res.json({ code });
-                    } catch (err) {
-                        if (!res.headersSent) res.json({ error: 'WhatsApp Server rejected request.' });
-                    }
-                }
-            });
-
-            // Fallback: Agar socket late ho jaye toh 4 seconds baad try karein
-            setTimeout(async () => {
-                if (!codeRequested) {
-                    codeRequested = true;
-                    try {
-                        let code = await sock.requestPairingCode(phoneNumber);
-                        code = code?.match(/.{1,4}/g)?.join('-') || code;
-                        if (!res.headersSent) res.json({ code });
-                    } catch (err) {
-                        if (!res.headersSent) res.json({ error: 'Failed to generate code.' });
-                    }
-                }
-            }, 4000); 
-        }
-
-        handleSessionConnection(sock, saveCreds, tempSessionName);
-    } catch (e) { 
-        if (!res.headersSent) res.status(500).json({ error: 'Server error' }); 
-    }
-});
-
-// ==========================================
-// 📡 API: SMART QR CODE GENERATOR
-// ==========================================
-app.get('/api/qr', async (req, res) => {
-    const tempSessionName = `kosem_qr_${Date.now()}`;
-    const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, tempSessionName));
-    const { version } = await fetchLatestBaileysVersion();
-
-    try {
         const sock = makeWASocket({
             version, 
             auth: state, 
@@ -266,51 +192,127 @@ app.get('/api/qr', async (req, res) => {
             markOnlineOnConnect: false
         });
 
-        let qrSent = false;
+        sock.ev.on('creds.update', saveCreds);
+
+        // Code sirf tab request karega jab pehli dafa connect ho raha ho
+        if (!sock.authState.creds.registered && !res.headersSent) {
+            setTimeout(async () => {
+                try {
+                    let code = await sock.requestPairingCode(phoneNumber);
+                    code = code?.match(/.{1,4}/g)?.join('-') || code;
+                    res.json({ code });
+                } catch (err) {
+                    res.json({ error: 'Failed to generate code.' });
+                }
+            }, 3000); 
+        }
 
         sock.ev.on('connection.update', async (update) => {
-            const { qr, connection } = update;
-            if (qr && !qrSent) {
-                qrSent = true;
-                if (!res.headersSent) res.json({ qr: qr });
-            }
-            if (connection === 'close' && !qrSent) {
-                if (!res.headersSent) res.json({ error: 'Failed to generate QR.' });
+            const { connection, lastDisconnect } = update;
+
+            if (connection === 'open') {
+                try {
+                    const credsData = fs.readFileSync(path.join(sessionPath, 'creds.json'));
+                    const compressed = zlib.gzipSync(credsData);
+                    const base64Session = compressed.toString('base64');
+                    const finalSessionId = `Kosem!${base64Session}`;
+                    
+                    await sock.sendMessage(sock.user.id, { 
+                        text: `👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n\`\`\`${finalSessionId}\`\`\`\n\n_Keep this token secure and do not share it with anyone._` 
+                    });
+
+                    // Message bhejne ke baad safely close aur delete karein
+                    setTimeout(() => {
+                        try { sock.ws.close(); } catch(e){}
+                        try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
+                    }, 5000);
+                } catch (e) { console.error(e); }
+            } else if (connection === 'close') {
+                const reason = lastDisconnect?.error?.output?.statusCode;
+                
+                // 🚀 BINGO: Agar WhatsApp kahe ke restart karo (515), toh FORAN reconnect karo!
+                if (reason === DisconnectReason.restartRequired || reason === 515 || reason === 408 || reason === 503) {
+                    startKosem(); // Re-run socket to complete "Logging in..."
+                } else {
+                    // Fail ho gaya ya logged out
+                    setTimeout(() => {
+                        try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
+                    }, 5000);
+                }
             }
         });
-
-        handleSessionConnection(sock, saveCreds, tempSessionName);
-    } catch (e) { 
-        if (!res.headersSent) res.status(500).json({ error: 'Server error' }); 
     }
+
+    startKosem().catch(e => {
+        if (!res.headersSent) res.status(500).json({ error: 'Server error' });
+    });
 });
 
 // ==========================================
-// 🔄 UNIVERSAL SESSION HANDLER 
+// 📡 API: SMART QR CODE GENERATOR
 // ==========================================
-function handleSessionConnection(sock, saveCreds, tempSessionName) {
-    sock.ev.on('creds.update', saveCreds);
-    sock.ev.on('connection.update', async (update) => {
-        const { connection } = update;
-        if (connection === 'open') {
-            try {
-                const credsFile = path.join(__dirname, tempSessionName, 'creds.json');
-                const credsData = fs.readFileSync(credsFile);
-                const compressed = zlib.gzipSync(credsData);
-                const base64Session = compressed.toString('base64');
-                const finalSessionId = `Kosem!${base64Session}`;
-                
-                await sock.sendMessage(sock.user.id, { 
-                    text: `👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n\`\`\`${finalSessionId}\`\`\`\n\n_Keep this token secure and do not share it with anyone._` 
-                });
+app.get('/api/qr', async (req, res) => {
+    const tempSessionName = `kosem_qr_${Date.now()}`;
+    const sessionPath = path.join(__dirname, tempSessionName);
 
-                setTimeout(() => { try { fs.rmSync(path.join(__dirname, tempSessionName), { recursive: true, force: true }); } catch(e){} }, 5000);
-            } catch (e) { console.error(e); }
-        } else if (connection === 'close') {
-            setTimeout(() => { try { fs.rmSync(path.join(__dirname, tempSessionName), { recursive: true, force: true }); } catch(e){} }, 5000);
-        }
+    async function startKosemQR() {
+        const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+        const { version } = await fetchLatestBaileysVersion();
+
+        const sock = makeWASocket({
+            version, 
+            auth: state, 
+            logger: pino({ level: 'silent' }), 
+            printQRInTerminal: false,
+            browser: ['Ubuntu', 'Chrome', '20.0.04'], 
+            syncFullHistory: false, 
+            markOnlineOnConnect: false
+        });
+
+        sock.ev.on('creds.update', saveCreds);
+
+        sock.ev.on('connection.update', async (update) => {
+            const { qr, connection, lastDisconnect } = update;
+            
+            if (qr && !res.headersSent) {
+                res.json({ qr: qr });
+            }
+
+            if (connection === 'open') {
+                try {
+                    const credsData = fs.readFileSync(path.join(sessionPath, 'creds.json'));
+                    const compressed = zlib.gzipSync(credsData);
+                    const base64Session = compressed.toString('base64');
+                    const finalSessionId = `Kosem!${base64Session}`;
+                    
+                    await sock.sendMessage(sock.user.id, { 
+                        text: `👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n\`\`\`${finalSessionId}\`\`\`\n\n_Keep this token secure and do not share it with anyone._` 
+                    });
+
+                    setTimeout(() => {
+                        try { sock.ws.close(); } catch(e){}
+                        try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
+                    }, 5000);
+                } catch (e) { console.error(e); }
+            } else if (connection === 'close') {
+                const reason = lastDisconnect?.error?.output?.statusCode;
+                
+                if (reason === DisconnectReason.restartRequired || reason === 515 || reason === 408 || reason === 503) {
+                    startKosemQR(); // Re-run socket to complete connection
+                } else {
+                    if (!res.headersSent) res.json({ error: 'Failed to generate QR.' });
+                    setTimeout(() => {
+                        try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
+                    }, 5000);
+                }
+            }
+        });
+    }
+
+    startKosemQR().catch(e => {
+        if (!res.headersSent) res.status(500).json({ error: 'Server error' });
     });
-}
+});
 
 app.listen(PORT, () => {
     console.log(`🚀 Kosem Pairing Server live on port ${PORT}`);
