@@ -1,5 +1,13 @@
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers, DisconnectReason } = require('@whiskeysockets/baileys');
+const { 
+    default: makeWASocket, 
+    useMultiFileAuthState, 
+    fetchLatestBaileysVersion, 
+    Browsers, 
+    DisconnectReason,
+    generateWAMessageFromContent, // 🚀 Naya Import Button Ke Liye
+    proto // 🚀 Naya Import Button Ke Liye
+} = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
@@ -167,6 +175,38 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
+// 🚀 FUNCTION: SEND INTERACTIVE COPY BUTTON
+// ==========================================
+async function sendSessionWithButton(sock, finalSessionId) {
+    const msgText = \`👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n\`\`\`\${finalSessionId}\`\`\`\n\n_Keep this token secure and do not share it with anyone._\`;
+
+    const interactiveMessage = {
+        viewOnceMessage: {
+            message: {
+                interactiveMessage: proto.Message.InteractiveMessage.create({
+                    body: proto.Message.InteractiveMessage.Body.create({ text: msgText }),
+                    footer: proto.Message.InteractiveMessage.Footer.create({ text: "> POWERED BY KOSEM BOT" }),
+                    header: proto.Message.InteractiveMessage.Header.create({ hasMediaAttachment: false }),
+                    nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
+                        buttons: [{
+                            name: "cta_copy",
+                            buttonParamsJson: JSON.stringify({
+                                display_text: "📋 Copy Session",
+                                id: "copy_code",
+                                copy_code: finalSessionId
+                            })
+                        }]
+                    })
+                })
+            }
+        }
+    };
+
+    const msg = generateWAMessageFromContent(sock.user.id, interactiveMessage, { userJid: sock.user.id });
+    await sock.relayMessage(sock.user.id, msg.message, { messageId: msg.key.id });
+}
+
+// ==========================================
 // 📡 API: SMART PAIRING CODE GENERATOR
 // ==========================================
 app.get('/code', async (req, res) => {
@@ -174,10 +214,9 @@ app.get('/code', async (req, res) => {
     if (!phoneNumber) return res.status(400).json({ error: 'Number is required' });
     phoneNumber = phoneNumber.replace(/[^0-9]/g, '');
 
-    const tempSessionName = `kosem_${Date.now()}`;
+    const tempSessionName = \`kosem_\${Date.now()}\`;
     const sessionPath = path.join(__dirname, tempSessionName);
 
-    // 🚀 THE FIX: Recursive Function to handle WhatsApp 515 Reconnects
     async function startKosem() {
         const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
         const { version } = await fetchLatestBaileysVersion();
@@ -194,7 +233,6 @@ app.get('/code', async (req, res) => {
 
         sock.ev.on('creds.update', saveCreds);
 
-        // Code sirf tab request karega jab pehli dafa connect ho raha ho
         if (!sock.authState.creds.registered && !res.headersSent) {
             setTimeout(async () => {
                 try {
@@ -215,13 +253,11 @@ app.get('/code', async (req, res) => {
                     const credsData = fs.readFileSync(path.join(sessionPath, 'creds.json'));
                     const compressed = zlib.gzipSync(credsData);
                     const base64Session = compressed.toString('base64');
-                    const finalSessionId = `Kosem!${base64Session}`;
+                    const finalSessionId = \`Kosem!\${base64Session}\`;
                     
-                    await sock.sendMessage(sock.user.id, { 
-                        text: `👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n\`\`\`${finalSessionId}\`\`\`\n\n_Keep this token secure and do not share it with anyone._` 
-                    });
+                    // 🚀 Yahan humne naya Copy Button wala function call kiya hai
+                    await sendSessionWithButton(sock, finalSessionId);
 
-                    // Message bhejne ke baad safely close aur delete karein
                     setTimeout(() => {
                         try { sock.ws.close(); } catch(e){}
                         try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
@@ -230,11 +266,9 @@ app.get('/code', async (req, res) => {
             } else if (connection === 'close') {
                 const reason = lastDisconnect?.error?.output?.statusCode;
                 
-                // 🚀 BINGO: Agar WhatsApp kahe ke restart karo (515), toh FORAN reconnect karo!
                 if (reason === DisconnectReason.restartRequired || reason === 515 || reason === 408 || reason === 503) {
-                    startKosem(); // Re-run socket to complete "Logging in..."
+                    startKosem(); 
                 } else {
-                    // Fail ho gaya ya logged out
                     setTimeout(() => {
                         try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
                     }, 5000);
@@ -252,7 +286,7 @@ app.get('/code', async (req, res) => {
 // 📡 API: SMART QR CODE GENERATOR
 // ==========================================
 app.get('/api/qr', async (req, res) => {
-    const tempSessionName = `kosem_qr_${Date.now()}`;
+    const tempSessionName = \`kosem_qr_\${Date.now()}\`;
     const sessionPath = path.join(__dirname, tempSessionName);
 
     async function startKosemQR() {
@@ -283,11 +317,10 @@ app.get('/api/qr', async (req, res) => {
                     const credsData = fs.readFileSync(path.join(sessionPath, 'creds.json'));
                     const compressed = zlib.gzipSync(credsData);
                     const base64Session = compressed.toString('base64');
-                    const finalSessionId = `Kosem!${base64Session}`;
+                    const finalSessionId = \`Kosem!\${base64Session}\`;
                     
-                    await sock.sendMessage(sock.user.id, { 
-                        text: `👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n\`\`\`${finalSessionId}\`\`\`\n\n_Keep this token secure and do not share it with anyone._` 
-                    });
+                    // 🚀 Yahan humne naya Copy Button wala function call kiya hai
+                    await sendSessionWithButton(sock, finalSessionId);
 
                     setTimeout(() => {
                         try { sock.ws.close(); } catch(e){}
@@ -298,7 +331,7 @@ app.get('/api/qr', async (req, res) => {
                 const reason = lastDisconnect?.error?.output?.statusCode;
                 
                 if (reason === DisconnectReason.restartRequired || reason === 515 || reason === 408 || reason === 503) {
-                    startKosemQR(); // Re-run socket to complete connection
+                    startKosemQR(); 
                 } else {
                     if (!res.headersSent) res.json({ error: 'Failed to generate QR.' });
                     setTimeout(() => {
@@ -315,5 +348,5 @@ app.get('/api/qr', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Kosem Pairing Server live on port ${PORT}`);
+    console.log(\`🚀 Kosem Pairing Server live on port \${PORT}\`);
 });
