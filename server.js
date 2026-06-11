@@ -4,16 +4,14 @@ const {
     useMultiFileAuthState, 
     fetchLatestBaileysVersion, 
     Browsers, 
-    DisconnectReason,
-    generateWAMessageFromContent, 
-    proto 
+    DisconnectReason 
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
-// 🛡️ ANTI-CRASH SYSTEM (Server ko band hone se rokne ke liye)
+// 🛡️ ANTI-CRASH SYSTEM
 process.on('uncaughtException', (err) => console.error('Uncaught Exception:', err));
 process.on('unhandledRejection', (err) => console.error('Unhandled Rejection:', err));
 
@@ -167,7 +165,7 @@ app.get('/', (req, res) => {
                         const response = await fetch('/api/qr');
                         const data = await response.json();
                         if(data.qr) {
-                            const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=' + encodeURIComponent(data.qr);
+                            const qrUrl = '[https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=](https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=)' + encodeURIComponent(data.qr);
                             animateHTMLChange(container, \`<img src="\${qrUrl}" width="200" height="200" class="qr-image" alt="QR Code"><div class="instructions">Scan this QR code from WhatsApp > Linked Devices.<br><br>Your Session ID will be sent to your inbox.</div>\`);
                         } else { animateHTMLChange(container, \`<span class="error">Error generating QR.</span>\`); }
                     } catch(e) { animateHTMLChange(container, '<span class="error">Timeout. Try again.</span>'); }
@@ -179,41 +177,16 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 🚀 FUNCTION: SEND INTERACTIVE COPY BUTTON
+// 🚀 FUNCTION: SEND STABLE TEXT SESSION
 // ==========================================
-async function sendSessionWithButton(sock, finalSessionId) {
-    // 🛡️ SYNTAX FIXED: Safe string concatenation used instead of backticks
-    const msgText = "👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n```" + finalSessionId + "```\n\n_Keep this token secure and do not share it with anyone._";
+async function sendSessionReliably(sock, finalSessionId) {
+    // Monospace format use kiya hai taake phone par asani se copy ho jaye
+    const msgText = "👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n```" + finalSessionId + "```\n\n> POWERED BY KOSEM BOT\n_Keep this token secure and do not share it with anyone._";
 
     try {
-        const interactiveMessage = {
-            viewOnceMessage: {
-                message: {
-                    interactiveMessage: proto.Message.InteractiveMessage.create({
-                        body: proto.Message.InteractiveMessage.Body.create({ text: msgText }),
-                        footer: proto.Message.InteractiveMessage.Footer.create({ text: "> POWERED BY KOSEM BOT" }),
-                        header: proto.Message.InteractiveMessage.Header.create({ hasMediaAttachment: false }),
-                        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
-                            buttons: [{
-                                name: "cta_copy",
-                                buttonParamsJson: JSON.stringify({
-                                    display_text: "📋 Copy Session",
-                                    id: "copy_code",
-                                    copy_code: finalSessionId
-                                })
-                            }]
-                        })
-                    })
-                }
-            }
-        };
-
-        const msg = generateWAMessageFromContent(sock.user.id, interactiveMessage, { userJid: sock.user.id });
-        await sock.relayMessage(sock.user.id, msg.message, { messageId: msg.key.id });
-    } catch (err) {
-        // Fallback agar button fail ho jaye (Server crash na ho)
-        console.log("Button fail hua, simple message bhej raha hoon...");
         await sock.sendMessage(sock.user.id, { text: msgText });
+    } catch (err) {
+        console.log("Error sending session message:", err);
     }
 }
 
@@ -266,7 +239,8 @@ app.get('/code', async (req, res) => {
                     const base64Session = compressed.toString('base64');
                     const finalSessionId = `Kosem!${base64Session}`;
                     
-                    await sendSessionWithButton(sock, finalSessionId);
+                    // 🚀 SAFE METHOD USE KIYA HAI
+                    await sendSessionReliably(sock, finalSessionId);
 
                     setTimeout(() => {
                         try { sock.ws.close(); } catch(e){}
@@ -329,7 +303,8 @@ app.get('/api/qr', async (req, res) => {
                     const base64Session = compressed.toString('base64');
                     const finalSessionId = `Kosem!${base64Session}`;
                     
-                    await sendSessionWithButton(sock, finalSessionId);
+                    // 🚀 SAFE METHOD USE KIYA HAI
+                    await sendSessionReliably(sock, finalSessionId);
 
                     setTimeout(() => {
                         try { sock.ws.close(); } catch(e){}
