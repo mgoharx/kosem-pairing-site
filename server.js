@@ -1,5 +1,5 @@
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// 🌐 KOSEM PREMIUM 3D GLASSMORPHISM FRONTEND
+// 🌐 KOSEM PREMIUM 3D GLASSMORPHISM FRONTEND (Unchanged Design)
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -194,7 +194,7 @@ app.get('/', (req, res) => {
     `);
 });
 
-// 📡 API Backend Token Core
+// 📡 API Backend Token Core (With Ultimate Block Fixes)
 app.get('/code', async (req, res) => {
     let phoneNumber = req.query.number;
     if (!phoneNumber) return res.status(400).json({ error: 'Number is required' });
@@ -211,14 +211,18 @@ app.get('/code', async (req, res) => {
             auth: state,
             logger: pino({ level: 'silent' }),
             printQRInTerminal: false,
-            // Premium fix to avoid WA Server block
-            browser: Browsers.ubuntu('Chrome'),
+            // 🚀 FIX: Asli Windows Chrome jaisi pehchan dena taake WA block na kare
+            browser: ['Chrome', 'Windows', '10.0'],
+            // 🚀 FIX: Load kam karne ke liye extra cheezein band kar di hain
+            syncFullHistory: false,
+            generateHighQualityLinkPreview: false,
+            markOnlineOnConnect: false,
             connectTimeoutMs: 60000,
-            defaultQueryTimeoutMs: 0,
             keepAliveIntervalMs: 10000
         });
 
         if (!sock.authState.creds.registered) {
+            // 🚀 FIX: Timeout ko 6 seconds (6000ms) kar diya hai taake connection stable ho jaye
             setTimeout(async () => {
                 try {
                     let code = await sock.requestPairingCode(phoneNumber);
@@ -227,7 +231,7 @@ app.get('/code', async (req, res) => {
                 } catch (err) {
                     res.json({ error: 'Failed to generate code. Try again.' });
                 }
-            }, 4000);
+            }, 6000); 
         }
 
         sock.ev.on('creds.update', saveCreds);
