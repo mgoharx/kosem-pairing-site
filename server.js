@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// 🌐 KOSEM PREMIUM FRONTEND (REALISTIC SHADOWS + SMOOTH ANIMATIONS)
+// 🌐 KOSEM PREMIUM FRONTEND (GREYSCALE iOS DARK MODE)
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -23,66 +23,75 @@ app.get('/', (req, res) => {
                 body, html {
                     margin: 0; padding: 0; height: 100%;
                     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                    background: linear-gradient(135deg, #1e0b36, #000000, #3a1c71);
+                    /* Clean Dark Grey Background */
+                    background: linear-gradient(135deg, #111111, #000000, #1a1a1a);
                     color: #ffffff; display: flex; justify-content: center; align-items: center; overflow: hidden;
                 }
+                
+                /* Subtle Ambient Lights (No Pink/Red) */
                 .circle1, .circle2 {
-                    position: absolute; border-radius: 50%; filter: blur(80px); z-index: 0;
+                    position: absolute; border-radius: 50%; filter: blur(90px); z-index: 0;
                     animation: float 8s ease-in-out infinite alternate;
                 }
-                .circle1 { width: 350px; height: 350px; background: #ff3e6c; top: -10%; left: -10%; animation-delay: 0s; }
-                .circle2 { width: 400px; height: 400px; background: #00f2fe; bottom: -10%; right: -10%; animation-delay: -4s; }
+                .circle1 { width: 350px; height: 350px; background: rgba(255, 255, 255, 0.05); top: -10%; left: -10%; animation-delay: 0s; }
+                .circle2 { width: 400px; height: 400px; background: rgba(255, 255, 255, 0.07); bottom: -10%; right: -10%; animation-delay: -4s; }
                 @keyframes float {
                     0% { transform: translateY(0) scale(1); }
-                    100% { transform: translateY(30px) scale(1.1); }
+                    100% { transform: translateY(30px) scale(1.05); }
                 }
 
-                /* 🚀 REALISTIC GLASSMORPHISM CARD 🚀 */
+                /* 🚀 REALISTIC SOFT SHADOW GLASS CARD 🚀 */
                 .glass-card {
                     position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 40px 30px;
-                    background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(25px);
-                    -webkit-backdrop-filter: blur(25px);
-                    border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px;
-                    /* 🌟 FIX: Multi-layered, soft ambient shadow instead of fake heavy block */
-                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 30px 60px rgba(0, 0, 0, 0.2); 
+                    background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(30px);
+                    -webkit-backdrop-filter: blur(30px);
+                    border: 1px solid rgba(255, 255, 255, 0.08); 
+                    border-top: 1px solid rgba(255, 255, 255, 0.12);
+                    border-left: 1px solid rgba(255, 255, 255, 0.12);
+                    border-radius: 24px;
+                    /* 🌟 Soft, natural shadow (No fake black box feel) */
+                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); 
                     text-align: center; box-sizing: border-box;
                     transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
                     overflow: hidden; 
                 }
 
-                h2 { margin: 0 0 10px; font-size: 28px; font-weight: 700; letter-spacing: 1px; }
-                p { color: rgba(255, 255, 255, 0.7); font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
+                h2 { margin: 0 0 10px; font-size: 28px; font-weight: 700; letter-spacing: 1px; color: #ffffff; }
+                p { color: rgba(255, 255, 255, 0.5); font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
                 
                 /* Stylish Toggle Switch */
                 .toggle-box {
-                    display: flex; background: rgba(0, 0, 0, 0.3); border-radius: 12px; margin-bottom: 25px;
-                    overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); position: relative;
+                    display: flex; background: rgba(0, 0, 0, 0.4); border-radius: 12px; margin-bottom: 25px;
+                    overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); position: relative;
                 }
                 .toggle-btn {
-                    flex: 1; padding: 12px; cursor: pointer; color: rgba(255,255,255,0.6); font-weight: 600;
+                    flex: 1; padding: 12px; cursor: pointer; color: rgba(255,255,255,0.4); font-weight: 600;
                     font-size: 14px; transition: color 0.3s; z-index: 2; position: relative;
                 }
-                .toggle-btn.active { color: white; }
+                .toggle-btn.active { color: #ffffff; }
+                
+                /* Grey slider background */
                 .toggle-bg {
                     position: absolute; top: 0; left: 0; width: 50%; height: 100%;
-                    background: #ff3e6c; border-radius: 12px; z-index: 1;
+                    background: rgba(255, 255, 255, 0.12); border-radius: 12px; z-index: 1;
                     transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
                 }
 
                 input {
-                    width: 100%; padding: 16px; margin-bottom: 20px; background: rgba(0, 0, 0, 0.2);
+                    width: 100%; padding: 16px; margin-bottom: 20px; background: rgba(0, 0, 0, 0.3);
                     border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: white;
                     font-size: 16px; text-align: center; outline: none; box-sizing: border-box; transition: all 0.3s ease;
                 }
-                input:focus { background: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.4); box-shadow: 0 0 15px rgba(255, 255, 255, 0.1); }
+                input:focus { background: rgba(0, 0, 0, 0.5); border-color: rgba(255, 255, 255, 0.3); box-shadow: 0 0 15px rgba(255, 255, 255, 0.05); }
                 
+                /* Premium Apple-style Primary Button (Solid White/Light Grey) */
                 .action-btn {
-                    width: 100%; padding: 16px; background: linear-gradient(135deg, #ff3e6c, #f50057);
-                    color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;
-                    /* 🌟 FIX: Softened button shadow */
-                    box-shadow: 0 8px 15px rgba(255, 62, 108, 0.2); transition: all 0.3s ease;
+                    width: 100%; padding: 16px; background: #ffffff;
+                    color: #000000; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1); transition: all 0.3s ease;
                 }
-                .action-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255, 62, 108, 0.4); }
+                .action-btn:hover { background: #e0e0e0; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 255, 255, 0.15); }
+                .action-btn:active { transform: translateY(1px); }
                 
                 /* Cross Fade Animations */
                 .tab-content { 
@@ -94,15 +103,17 @@ app.get('/', (req, res) => {
 
                 #code-container, #qr-result { margin-top: 30px; }
                 .code-box {
-                    font-size: 32px; font-weight: bold; letter-spacing: 4px; background: rgba(255, 255, 255, 0.1);
-                    padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2);
-                    display: inline-block; margin-bottom: 15px; color: #fff; text-shadow: 0 2px 10px rgba(255,255,255,0.3);
+                    font-size: 32px; font-weight: bold; letter-spacing: 6px; background: rgba(0, 0, 0, 0.4);
+                    padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);
+                    display: inline-block; margin-bottom: 15px; color: #fff;
                 }
-                .qr-image { border-radius: 12px; border: 3px solid #ff3e6c; padding: 10px; background: white; margin-bottom: 15px; }
-                .instructions { font-size: 13px; color: rgba(255, 255, 255, 0.6); }
-                .loading { color: #00f2fe; font-weight: 500; animation: pulse 1.5s infinite; }
-                .error { color: #ff3e6c; font-weight: 500; }
-                @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+                .qr-image { border-radius: 12px; border: 2px solid rgba(255, 255, 255, 0.1); padding: 10px; background: white; margin-bottom: 15px; }
+                .instructions { font-size: 13px; color: rgba(255, 255, 255, 0.4); }
+                
+                /* Subtle Status Colors */
+                .loading { color: #cccccc; font-weight: 500; animation: pulse 1.5s infinite; }
+                .error { color: #ff5555; font-weight: 500; }
+                @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
             </style>
         </head>
         <body>
@@ -202,7 +213,7 @@ app.get('/', (req, res) => {
                     const container = document.getElementById('code-container');
                     if(!num) return animateHTMLChange(container, '<span class="error">Please enter a valid phone number.</span>');
                     
-                    animateHTMLChange(container, '<span class="loading">Establishing secure connection... Please wait.</span>');
+                    animateHTMLChange(container, '<span class="loading">Establishing secure connection...</span>');
                     try {
                         const response = await fetch('/code?number=' + num);
                         const data = await response.json();
@@ -217,7 +228,7 @@ app.get('/', (req, res) => {
 
                 async function getQRCode() {
                     const container = document.getElementById('qr-result');
-                    animateHTMLChange(container, '<span class="loading">Generating QR Code... Please wait.</span>');
+                    animateHTMLChange(container, '<span class="loading">Generating QR Code...</span>');
                     try {
                         const response = await fetch('/api/qr');
                         const data = await response.json();
