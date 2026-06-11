@@ -5,6 +5,10 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
+// 🛡️ ANTI-CRASH SYSTEM
+process.on('uncaughtException', (err) => console.error('Uncaught Exception:', err.message));
+process.on('unhandledRejection', (err) => console.error('Unhandled Rejection:', err.message));
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -177,7 +181,6 @@ app.get('/code', async (req, res) => {
     const tempSessionName = `kosem_${Date.now()}`;
     const sessionPath = path.join(__dirname, tempSessionName);
 
-    // 🚀 THE FIX: Recursive Function to handle WhatsApp 515 Reconnects
     async function startKosem() {
         const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
         const { version } = await fetchLatestBaileysVersion();
@@ -194,7 +197,6 @@ app.get('/code', async (req, res) => {
 
         sock.ev.on('creds.update', saveCreds);
 
-        // Code sirf tab request karega jab pehli dafa connect ho raha ho
         if (!sock.authState.creds.registered && !res.headersSent) {
             setTimeout(async () => {
                 try {
@@ -217,11 +219,9 @@ app.get('/code', async (req, res) => {
                     const base64Session = compressed.toString('base64');
                     const finalSessionId = `Kosem!${base64Session}`;
                     
-                    await sock.sendMessage(sock.user.id, { 
-                        text: `${finalSessionId}` 
-                    });
+                    // 🚀 BHEJNE WALA HISSA UPDATE HO GAYA (Sirf Session ID)
+                    await sock.sendMessage(sock.user.id, { text: finalSessionId });
 
-                    // Message bhejne ke baad safely close aur delete karein
                     setTimeout(() => {
                         try { sock.ws.close(); } catch(e){}
                         try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
@@ -230,11 +230,9 @@ app.get('/code', async (req, res) => {
             } else if (connection === 'close') {
                 const reason = lastDisconnect?.error?.output?.statusCode;
                 
-                // 🚀 BINGO: Agar WhatsApp kahe ke restart karo (515), toh FORAN reconnect karo!
                 if (reason === DisconnectReason.restartRequired || reason === 515 || reason === 408 || reason === 503) {
-                    startKosem(); // Re-run socket to complete "Logging in..."
+                    startKosem(); 
                 } else {
-                    // Fail ho gaya ya logged out
                     setTimeout(() => {
                         try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
                     }, 5000);
@@ -285,9 +283,8 @@ app.get('/api/qr', async (req, res) => {
                     const base64Session = compressed.toString('base64');
                     const finalSessionId = `Kosem!${base64Session}`;
                     
-                    await sock.sendMessage(sock.user.id, { 
-                        text: `\`${finalSessionId}` 
-                    });
+                    // 🚀 BHEJNE WALA HISSA UPDATE HO GAYA (Sirf Session ID)
+                    await sock.sendMessage(sock.user.id, { text: finalSessionId });
 
                     setTimeout(() => {
                         try { sock.ws.close(); } catch(e){}
@@ -298,7 +295,7 @@ app.get('/api/qr', async (req, res) => {
                 const reason = lastDisconnect?.error?.output?.statusCode;
                 
                 if (reason === DisconnectReason.restartRequired || reason === 515 || reason === 408 || reason === 503) {
-                    startKosemQR(); // Re-run socket to complete connection
+                    startKosemQR(); 
                 } else {
                     if (!res.headersSent) res.json({ error: 'Failed to generate QR.' });
                     setTimeout(() => {
