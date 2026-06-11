@@ -1,16 +1,16 @@
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
-const zlib = require('zlib'); // Compression ke liye
+const zlib = require('zlib');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// 🌐 Kosem Bot Frontend Beautiful Website Layout
+// 🌐 KOSEM PREMIUM 3D GLASSMORPHISM FRONTEND
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -18,51 +18,174 @@ app.get('/', (req, res) => {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Kosem Bot Pairing System</title>
+            <title>Kosem Pairing System</title>
             <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f0f12; color: white; text-align: center; padding: 50px; }
-                .card { background: #1a1a24; max-width: 450px; margin: 0 auto; padding: 30px; border-radius: 15px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid #2a2a3a; }
-                h2 { color: #ff3e6c; margin-top: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 1px; }
-                p { color: #a0a0b0; font-size: 14px; }
-                input { padding: 14px; width: 80%; border-radius: 8px; border: 1px solid #3a3a50; background: #111116; color: white; margin-bottom: 15px; font-size: 16px; text-align: center; outline: none; }
-                input:focus { border-color: #ff3e6c; }
-                button { padding: 14px 30px; background: #ff3e6c; color: white; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 16px; transition: 0.3s; width: 87%; }
-                button:hover { background: #e02453; box-shadow: 0 4px 12px rgba(255, 62, 108, 0.4); }
-                #code { font-size: 24px; font-weight: bold; color: #ff3e6c; margin-top: 25px; letter-spacing: 2px; }
-                .loading { color: #ffaa00; }
+                /* Apple System Font */
+                body, html {
+                    margin: 0;
+                    padding: 0;
+                    height: 100%;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                    background: linear-gradient(135deg, #1e0b36, #000000, #3a1c71);
+                    color: #ffffff;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    overflow: hidden;
+                }
+
+                /* Animated 3D Background Orbs */
+                .circle1, .circle2 {
+                    position: absolute;
+                    border-radius: 50%;
+                    filter: blur(80px);
+                    z-index: 0;
+                    animation: float 8s ease-in-out infinite alternate;
+                }
+                .circle1 { width: 350px; height: 350px; background: #ff3e6c; top: -10%; left: -10%; animation-delay: 0s; }
+                .circle2 { width: 400px; height: 400px; background: #00f2fe; bottom: -10%; right: -10%; animation-delay: -4s; }
+
+                @keyframes float {
+                    0% { transform: translateY(0) scale(1); }
+                    100% { transform: translateY(30px) scale(1.1); }
+                }
+
+                /* 3D Glassmorphism Card */
+                .glass-card {
+                    position: relative;
+                    z-index: 1;
+                    width: 100%;
+                    max-width: 420px;
+                    padding: 40px 30px;
+                    background: rgba(255, 255, 255, 0.05);
+                    backdrop-filter: blur(25px);
+                    -webkit-backdrop-filter: blur(25px);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    border-top: 1px solid rgba(255, 255, 255, 0.3);
+                    border-left: 1px solid rgba(255, 255, 255, 0.3);
+                    border-radius: 24px;
+                    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4);
+                    text-align: center;
+                    box-sizing: border-box;
+                }
+
+                h2 { margin: 0 0 10px; font-size: 28px; font-weight: 700; letter-spacing: 1px; }
+                p { color: rgba(255, 255, 255, 0.7); font-size: 14px; margin-bottom: 30px; line-height: 1.5; }
+
+                /* Premium Input Field */
+                input {
+                    width: 100%;
+                    padding: 16px;
+                    margin-bottom: 20px;
+                    background: rgba(0, 0, 0, 0.2);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 12px;
+                    color: white;
+                    font-size: 16px;
+                    text-align: center;
+                    outline: none;
+                    box-sizing: border-box;
+                    transition: all 0.3s ease;
+                }
+                input:focus {
+                    background: rgba(0, 0, 0, 0.4);
+                    border-color: rgba(255, 255, 255, 0.4);
+                    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+                }
+                input::placeholder { color: rgba(255, 255, 255, 0.4); }
+
+                /* 3D Button */
+                button {
+                    width: 100%;
+                    padding: 16px;
+                    background: linear-gradient(135deg, #ff3e6c, #f50057);
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    box-shadow: 0 8px 20px rgba(255, 62, 108, 0.3);
+                    transition: all 0.3s ease;
+                }
+                button:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 12px 25px rgba(255, 62, 108, 0.5);
+                }
+                button:active {
+                    transform: translateY(1px);
+                    box-shadow: 0 5px 15px rgba(255, 62, 108, 0.3);
+                }
+
+                /* Dynamic Code Display */
+                #code-container { margin-top: 30px; }
+                .code-box {
+                    font-size: 32px;
+                    font-weight: bold;
+                    letter-spacing: 4px;
+                    background: rgba(255, 255, 255, 0.1);
+                    padding: 15px;
+                    border-radius: 12px;
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    display: inline-block;
+                    margin-bottom: 15px;
+                    color: #fff;
+                    text-shadow: 0 2px 10px rgba(255,255,255,0.3);
+                }
+                .instructions { font-size: 13px; color: rgba(255, 255, 255, 0.6); }
+                .loading { color: #00f2fe; font-weight: 500; animation: pulse 1.5s infinite; }
+                .error { color: #ff3e6c; font-weight: 500; }
+
+                @keyframes pulse {
+                    0% { opacity: 0.6; }
+                    50% { opacity: 1; }
+                    100% { opacity: 0.6; }
+                }
             </style>
         </head>
         <body>
-            <div class="card">
-                <h2>👑 Kosem Bot 👑</h2>
-                <p>Enter your WhatsApp number with country code<br>(e.g., 923001234567)</p>
-                <input type="number" id="number" placeholder="92300xxxxxxx"><br>
-                <button onclick="getPairCode()">Generate Pairing Code</button>
-                <div id="code"></div>
+            <div class="circle1"></div>
+            <div class="circle2"></div>
+
+            <div class="glass-card">
+                <h2>Kosem Bot</h2>
+                <p>Enter your WhatsApp number with the country code to generate a secure pairing code.</p>
+                
+                <input type="number" id="number" placeholder="e.g. 923001234567">
+                <button onclick="getPairCode()">Generate Code</button>
+                
+                <div id="code-container"></div>
             </div>
 
             <script>
                 async function getPairCode() {
                     const num = document.getElementById('number').value;
-                    const codeDiv = document.getElementById('code');
-                    if(!num) return alert('Please enter a valid number!');
+                    const container = document.getElementById('code-container');
                     
-                    codeDiv.className = 'loading';
-                    codeDiv.innerText = 'Connecting to WhatsApp Server...';
+                    if(!num) {
+                        container.innerHTML = '<span class="error">Please enter a valid phone number.</span>';
+                        return;
+                    }
+                    
+                    container.innerHTML = '<span class="loading">Establishing secure connection...</span>';
                     
                     try {
                         const response = await fetch('/code?number=' + num);
                         const data = await response.json();
+                        
                         if(data.code) {
-                            codeDiv.className = '';
-                            codeDiv.innerHTML = 'Your Pairing Code:<br><br><span style="color:#fff; background:#ff3e6c; padding:8px 15px; border-radius:6px; font-size: 28px;">' + data.code + '</span><br><br><p style="color:#a0a0b0; font-size:13px;">WhatsApp Notification me se link device par click karke ye code lagayein. Link hone ke baad aapko aapki Session ID aapke WhatsApp par mil jayegi.</p>';
+                            container.innerHTML = \`
+                                <div class="code-box">\${data.code}</div>
+                                <div class="instructions">
+                                    Open WhatsApp > Linked Devices > Link a Device > Link with phone number instead.<br><br>
+                                    Your Session ID will be sent directly to your WhatsApp inbox.
+                                </div>
+                            \`;
                         } else {
-                            codeDiv.className = '';
-                            codeDiv.innerText = '❌ Error: ' + data.error;
+                            container.innerHTML = \`<span class="error">Error: \${data.error}</span>\`;
                         }
                     } catch(e) {
-                        codeDiv.className = '';
-                        codeDiv.innerText = '⚠️ Server Timeout. Please try again.';
+                        container.innerHTML = '<span class="error">Connection timeout. Please try again.</span>';
                     }
                 }
             </script>
@@ -87,7 +210,12 @@ app.get('/code', async (req, res) => {
             version,
             auth: state,
             logger: pino({ level: 'silent' }),
-            printQRInTerminal: false
+            printQRInTerminal: false,
+            // Premium fix to avoid WA Server block
+            browser: Browsers.ubuntu('Chrome'),
+            connectTimeoutMs: 60000,
+            defaultQueryTimeoutMs: 0,
+            keepAliveIntervalMs: 10000
         });
 
         if (!sock.authState.creds.registered) {
@@ -99,7 +227,7 @@ app.get('/code', async (req, res) => {
                 } catch (err) {
                     res.json({ error: 'Failed to generate code. Try again.' });
                 }
-            }, 3000);
+            }, 4000);
         }
 
         sock.ev.on('creds.update', saveCreds);
@@ -109,23 +237,18 @@ app.get('/code', async (req, res) => {
             
             if (connection === 'open') {
                 try {
-                    // Jab user device link kar lega, automatic creds read honge
                     const credsFile = path.join(__dirname, tempSessionName, 'creds.json');
                     const credsData = fs.readFileSync(credsFile);
                     
-                    // Gzip compression + Base64 Encoding
                     const compressed = zlib.gzipSync(credsData);
                     const base64Session = compressed.toString('base64');
                     
-                    // 🔑 BRAND NEW KOSEM FORMAT
                     const finalSessionId = `Kosem!${base64Session}`;
                     
-                    // User ko direct unke inbox mein session id send karna
                     await sock.sendMessage(sock.user.id, { 
-                        text: `👑 *WELCOME TO KOSEM BOT* 👑\n\nYour session has been successfully generated!\n\n📋 *YOUR SESSION ID:* \n\n\`\`\`${finalSessionId}\`\`\`\n\n*Note:* Is session ID ko copy karein aur apne config file ya panel me use karein. Kisi ke sath share mat karna!` 
+                        text: `👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n\`\`\`${finalSessionId}\`\`\`\n\n_Keep this token secure and do not share it with anyone._` 
                     });
 
-                    // Server ki memory se cache saaf karna
                     setTimeout(() => {
                         try { fs.rmSync(path.join(__dirname, tempSessionName), { recursive: true, force: true }); } catch(e){}
                     }, 5000);
