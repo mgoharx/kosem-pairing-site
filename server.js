@@ -218,7 +218,7 @@ app.get('/code', async (req, res) => {
                     const finalSessionId = `Kosem!${base64Session}`;
                     
                     await sock.sendMessage(sock.user.id, { 
-                        text: `👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n\`\`\`${finalSessionId}\`\`\`\n\n_Keep this token secure and do not share it with anyone._` 
+                        text: `${finalSessionId}` 
                     });
 
                     // Message bhejne ke baad safely close aur delete karein
