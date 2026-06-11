@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// 🌐 KOSEM PREMIUM FRONTEND (ULTRA SMOOTH BOX ANIMATION + iOS FEEL)
+// 🌐 KOSEM PREMIUM FRONTEND (REALISTIC SHADOWS + SMOOTH ANIMATIONS)
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -37,14 +37,15 @@ app.get('/', (req, res) => {
                     100% { transform: translateY(30px) scale(1.1); }
                 }
 
-                /* 🚀 ORGANIC 3D Glassmorphism Card 🚀 */
+                /* 🚀 REALISTIC GLASSMORPHISM CARD 🚀 */
                 .glass-card {
                     position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 40px 30px;
                     background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(25px);
                     -webkit-backdrop-filter: blur(25px);
                     border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px;
-                    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4); text-align: center; box-sizing: border-box;
-                    /* Height Auto Animation ke liye */
+                    /* 🌟 FIX: Multi-layered, soft ambient shadow instead of fake heavy block */
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 30px 60px rgba(0, 0, 0, 0.2); 
+                    text-align: center; box-sizing: border-box;
                     transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
                     overflow: hidden; 
                 }
@@ -78,9 +79,10 @@ app.get('/', (req, res) => {
                 .action-btn {
                     width: 100%; padding: 16px; background: linear-gradient(135deg, #ff3e6c, #f50057);
                     color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;
-                    box-shadow: 0 8px 20px rgba(255, 62, 108, 0.3); transition: all 0.3s ease;
+                    /* 🌟 FIX: Softened button shadow */
+                    box-shadow: 0 8px 15px rgba(255, 62, 108, 0.2); transition: all 0.3s ease;
                 }
-                .action-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(255, 62, 108, 0.5); }
+                .action-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255, 62, 108, 0.4); }
                 
                 /* Cross Fade Animations */
                 .tab-content { 
@@ -133,18 +135,18 @@ app.get('/', (req, res) => {
                 function animateHTMLChange(element, newHTML) {
                     const card = document.getElementById('main-card');
                     const startHeight = card.offsetHeight;
-                    card.style.height = startHeight + 'px'; // Lock current height
+                    card.style.height = startHeight + 'px'; 
                     
-                    element.innerHTML = newHTML; // Inject new HTML
+                    element.innerHTML = newHTML; 
                     
-                    card.style.height = 'auto'; // Temporarily set auto to measure
+                    card.style.height = 'auto'; 
                     const targetHeight = card.offsetHeight;
-                    card.style.height = startHeight + 'px'; // Revert back
+                    card.style.height = startHeight + 'px'; 
                     
-                    void card.offsetHeight; // Force reflow (Magic step for CSS transition)
-                    card.style.height = targetHeight + 'px'; // Animate to new height
+                    void card.offsetHeight; 
+                    card.style.height = targetHeight + 'px'; 
                     
-                    setTimeout(() => { card.style.height = 'auto'; }, 400); // Cleanup after transition
+                    setTimeout(() => { card.style.height = 'auto'; }, 400); 
                 }
 
                 function switchTab(tab) {
@@ -160,7 +162,6 @@ app.get('/', (req, res) => {
                     
                     if (activeSection === targetSection) return;
 
-                    // Slider Animation
                     if (tab === 'phone') {
                         toggleBg.style.transform = 'translateX(0)';
                         btnPhone.classList.add('active');
@@ -171,30 +172,24 @@ app.get('/', (req, res) => {
                         btnPhone.classList.remove('active');
                     }
 
-                    // 1. Lock Height
                     const startHeight = card.offsetHeight;
                     card.style.height = startHeight + 'px';
 
-                    // 2. Fade Out
                     activeSection.classList.remove('show');
                     
                     setTimeout(() => {
-                        // 3. Swap Elements
                         activeSection.classList.remove('active');
                         targetSection.classList.add('active');
                         document.getElementById('code-container').innerHTML = '';
                         document.getElementById('qr-result').innerHTML = '';
                         
-                        // 4. Measure New Height
                         card.style.height = 'auto';
                         const targetHeight = card.offsetHeight;
                         card.style.height = startHeight + 'px'; 
                         void card.offsetHeight; 
                         
-                        // 5. Expand / Shrink Smoothly
                         card.style.height = targetHeight + 'px';
                         
-                        // 6. Fade In New Content
                         setTimeout(() => {
                             targetSection.classList.add('show');
                             setTimeout(() => { card.style.height = 'auto'; }, 400);
@@ -227,7 +222,6 @@ app.get('/', (req, res) => {
                         const response = await fetch('/api/qr');
                         const data = await response.json();
                         if(data.qr) {
-                            // Image width height specifically declared for perfect animation calculation
                             const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=' + encodeURIComponent(data.qr);
                             animateHTMLChange(container, \`
                                 <img src="\${qrUrl}" width="200" height="200" class="qr-image" alt="QR Code">
