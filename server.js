@@ -4,16 +4,14 @@ const {
     useMultiFileAuthState, 
     fetchLatestBaileysVersion, 
     Browsers, 
-    DisconnectReason, 
-    generateWAMessageFromContent,
-    proto // 🚀 Zaroori import copy button ke liye
+    DisconnectReason 
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
-// 🛡️ ANTI-CRASH SYSTEM
+// 🛡️ SISTEMA LABAN SA CRASH (Para hindi mamatay ang server)
 process.on('uncaughtException', (err) => console.error('Uncaught Exception:', err.message));
 process.on('unhandledRejection', (err) => console.error('Unhandled Rejection:', err.message));
 
@@ -70,19 +68,19 @@ const htmlContent = `
     <div class="circle1"></div><div class="circle2"></div>
     <div class="glass-card" id="main-card">
         <h2>Kosem Bot</h2>
-        <p>Choose a method to link your device securely.</p>
+        <p>Pumili ng paraan para i-link ang iyong device nang ligtas.</p>
         <div class="toggle-box">
             <div class="toggle-bg" id="toggle-bg"></div>
-            <div class="toggle-btn active" id="btn-phone" onclick="switchTab('phone')">Phone Number</div>
+            <div class="toggle-btn active" id="btn-phone" onclick="switchTab('phone')">Numero ng Telepono</div>
             <div class="toggle-btn" id="btn-qr" onclick="switchTab('qr')">QR Code</div>
         </div>
         <div id="section-phone" class="tab-content active show">
-            <input type="number" id="number" placeholder="e.g. 923001234567">
-            <button class="action-btn" onclick="getPairCode()">Generate Code</button>
+            <input type="number" id="number" placeholder="halimbawa: 923001234567">
+            <button class="action-btn" onclick="getPairCode()">Bumuo ng Code</button>
             <div id="code-container"></div>
         </div>
         <div id="section-qr" class="tab-content">
-            <button class="action-btn" onclick="getQRCode()">Generate QR</button>
+            <button class="action-btn" onclick="getQRCode()">Bumuo ng QR</button>
             <div id="qr-result"></div>
         </div>
     </div>
@@ -147,29 +145,29 @@ const htmlContent = `
         async function getPairCode() {
             const num = document.getElementById('number').value;
             const container = document.getElementById('code-container');
-            if(!num) return animateHTMLChange(container, '<span class="error">Please enter a valid phone number.</span>');
+            if(!num) return animateHTMLChange(container, '<span class="error">Mangyaring maglagay ng tamang numero ng telepono.</span>');
             
-            animateHTMLChange(container, '<span class="loading">Establishing secure connection...</span>');
+            animateHTMLChange(container, '<span class="loading">Nagtatatag ng ligtas na koneksyon...</span>');
             try {
                 const response = await fetch('/code?number=' + num);
                 const data = await response.json();
                 if(data.code) {
-                    animateHTMLChange(container, '<div class="code-box">' + data.code + '</div><div class="instructions">Open WhatsApp > Linked Devices > Link with phone number instead.<br><br>Session ID will be sent to your WhatsApp.</div>');
+                    animateHTMLChange(container, '<div class="code-box">' + data.code + '</div><div class="instructions">Buksan ang WhatsApp > Mga Na-link na Device > I-link gamit ang numero ng telepono.<br><br>Ipapadala ang Session ID sa iyong WhatsApp.</div>');
                 } else { animateHTMLChange(container, '<span class="error">Error: ' + data.error + '</span>'); }
-            } catch(e) { animateHTMLChange(container, '<span class="error">Connection timeout. Please try again.</span>'); }
+            } catch(e) { animateHTMLChange(container, '<span class="error">Nag-time out ang koneksyon. Subukang muli.</span>'); }
         }
 
         async function getQRCode() {
             const container = document.getElementById('qr-result');
-            animateHTMLChange(container, '<span class="loading">Generating QR Code...</span>');
+            animateHTMLChange(container, '<span class="loading">Bumubuo ng QR Code...</span>');
             try {
                 const response = await fetch('/api/qr');
                 const data = await response.json();
                 if(data.qr) {
                     const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=' + encodeURIComponent(data.qr);
-                    animateHTMLChange(container, '<img src="' + qrUrl + '" width="200" height="200" class="qr-image" alt="QR Code"><div class="instructions">Scan this QR code from WhatsApp > Linked Devices.<br><br>Your Session ID will be sent to your inbox.</div>');
-                } else { animateHTMLChange(container, '<span class="error">Error generating QR.</span>'); }
-            } catch(e) { animateHTMLChange(container, '<span class="error">Timeout. Try again.</span>'); }
+                    animateHTMLChange(container, '<img src="' + qrUrl + '" width="200" height="200" class="qr-image" alt="Larawan ng QR Code"><div class="instructions">I-scan itong QR code mula sa WhatsApp > Mga Na-link na Device.<br><br>Ipapadala ang iyong Session ID sa iyong inbox.</div>');
+                } else { animateHTMLChange(container, '<span class="error">Error sa pagbuo ng QR.</span>'); }
+            } catch(e) { animateHTMLChange(container, '<span class="error">Nag-time out. Subukang muli.</span>'); }
         }
     </script>
 </body>
@@ -181,12 +179,12 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 🚀 DUAL-DELIVERY ENGINE (Button + Safe Text)
+// 🚀 LIGTAS NA PAGPAPADALA NG SESSION (WALANG BUTTON)
 // ==========================================
 async function sendSessionPayload(sock, finalSessionId) {
     try {
-        // Safe JID extraction
+        // Ligtas na pagkuha ng JID
         const cleanJid = sock.user && sock.user.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : '';
         if (!cleanJid) return;
 
-        const plainText = "👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n
+        const plainText = "👑 *Nagsimula na ang Kosem MD* 👑\n\nAng iyong session ay matagumpay na nabuo.\n\n📋 *SESSION ID:*\n
