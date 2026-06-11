@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// 🌐 KOSEM PREMIUM FRONTEND (WITH SMOOTH ANIMATIONS)
+// 🌐 KOSEM PREMIUM FRONTEND (ULTRA SMOOTH iOS ANIMATION)
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -42,20 +42,28 @@ app.get('/', (req, res) => {
                     -webkit-backdrop-filter: blur(25px);
                     border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px;
                     box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4); text-align: center; box-sizing: border-box;
+                    min-height: 450px; /* Card ki height fix ki hai taake jhatka na lage */
                 }
                 h2 { margin: 0 0 10px; font-size: 28px; font-weight: 700; letter-spacing: 1px; }
-                p { color: rgba(255, 255, 255, 0.7); font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+                p { color: rgba(255, 255, 255, 0.7); font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
                 
                 /* Stylish Toggle Switch */
                 .toggle-box {
                     display: flex; background: rgba(0, 0, 0, 0.3); border-radius: 12px; margin-bottom: 25px;
-                    overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1);
+                    overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); position: relative;
                 }
                 .toggle-btn {
                     flex: 1; padding: 12px; cursor: pointer; color: rgba(255,255,255,0.6); font-weight: 600;
-                    font-size: 14px; transition: 0.3s;
+                    font-size: 14px; transition: color 0.3s; z-index: 2; position: relative;
                 }
-                .toggle-btn.active { background: #ff3e6c; color: white; }
+                .toggle-btn.active { color: white; }
+                
+                /* Sliding background for toggle buttons */
+                .toggle-bg {
+                    position: absolute; top: 0; left: 0; width: 50%; height: 100%;
+                    background: #ff3e6c; border-radius: 12px; z-index: 1;
+                    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+                }
 
                 input {
                     width: 100%; padding: 16px; margin-bottom: 20px; background: rgba(0, 0, 0, 0.2);
@@ -71,18 +79,16 @@ app.get('/', (req, res) => {
                 }
                 .action-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(255, 62, 108, 0.5); }
                 
-                /* SMOOTH ANIMATION CLASSES */
-                .tab-content { display: none; }
-                .tab-content.active {
-                    display: block;
-                    animation: fadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                /* 🚀 TRUE SMOOTH ANIMATION CLASSES 🚀 */
+                .tab-content { 
+                    display: none; 
+                    opacity: 0; 
+                    transform: translateY(15px); 
+                    transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
                 }
+                .tab-content.active { display: block; }
+                .tab-content.show { opacity: 1; transform: translateY(0); }
 
-                @keyframes fadeSlideUp {
-                    from { opacity: 0; transform: translateY(15px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                
                 #code-container, #qr-result { margin-top: 30px; }
                 .code-box {
                     font-size: 32px; font-weight: bold; letter-spacing: 4px; background: rgba(255, 255, 255, 0.1);
@@ -104,11 +110,12 @@ app.get('/', (req, res) => {
                 <p>Choose a method to link your device securely.</p>
                 
                 <div class="toggle-box">
+                    <div class="toggle-bg" id="toggle-bg"></div>
                     <div class="toggle-btn active" id="btn-phone" onclick="switchTab('phone')">Phone Number</div>
                     <div class="toggle-btn" id="btn-qr" onclick="switchTab('qr')">QR Code</div>
                 </div>
 
-                <div id="section-phone" class="tab-content active">
+                <div id="section-phone" class="tab-content active show">
                     <input type="number" id="number" placeholder="e.g. 923001234567">
                     <button class="action-btn" onclick="getPairCode()">Generate Code</button>
                     <div id="code-container"></div>
@@ -121,27 +128,47 @@ app.get('/', (req, res) => {
             </div>
 
             <script>
-                // ANIMATED TAB SWITCHING LOGIC
+                // 🚀 BUTTERY SMOOTH CROSS-FADE LOGIC
                 function switchTab(tab) {
                     const phoneSection = document.getElementById('section-phone');
                     const qrSection = document.getElementById('section-qr');
                     const btnPhone = document.getElementById('btn-phone');
                     const btnQr = document.getElementById('btn-qr');
+                    const toggleBg = document.getElementById('toggle-bg');
 
-                    if (tab === 'phone') {
-                        qrSection.classList.remove('active');
-                        setTimeout(() => { phoneSection.classList.add('active'); }, 50);
-                        btnPhone.className = 'toggle-btn active';
-                        btnQr.className = 'toggle-btn';
-                    } else {
-                        phoneSection.classList.remove('active');
-                        setTimeout(() => { qrSection.classList.add('active'); }, 50);
-                        btnQr.className = 'toggle-btn active';
-                        btnPhone.className = 'toggle-btn';
-                    }
+                    const targetSection = tab === 'phone' ? phoneSection : qrSection;
+                    const activeSection = document.querySelector('.tab-content.show') || document.querySelector('.tab-content.active');
                     
-                    document.getElementById('code-container').innerHTML = '';
-                    document.getElementById('qr-result').innerHTML = '';
+                    if (activeSection === targetSection) return;
+
+                    // Slider Animation for Toggle Buttons
+                    if (tab === 'phone') {
+                        toggleBg.style.transform = 'translateX(0)';
+                        btnPhone.classList.add('active');
+                        btnQr.classList.remove('active');
+                    } else {
+                        toggleBg.style.transform = 'translateX(100%)';
+                        btnQr.classList.add('active');
+                        btnPhone.classList.remove('active');
+                    }
+
+                    // Step 1: Smooth Fade Out
+                    activeSection.classList.remove('show');
+                    
+                    // Step 2: Wait for fade out, then swap visibility
+                    setTimeout(() => {
+                        activeSection.classList.remove('active');
+                        targetSection.classList.add('active');
+                        
+                        // Clear old generated content
+                        document.getElementById('code-container').innerHTML = '';
+                        document.getElementById('qr-result').innerHTML = '';
+
+                        // Step 3: Smooth Fade In
+                        setTimeout(() => {
+                            targetSection.classList.add('show');
+                        }, 30); // Tiny delay for CSS to register display:block
+                    }, 350); // Matches CSS transition duration
                 }
 
                 async function getPairCode() {
@@ -201,14 +228,12 @@ app.get('/code', async (req, res) => {
             auth: state, 
             logger: pino({ level: 'silent' }), 
             printQRInTerminal: false,
-            // 🚀 FIX: WhatsApp ko lagay ga yeh ek asli Apple Mac hai, block nahi hoga
             browser: Browsers.macOS('Desktop'), 
             syncFullHistory: false, 
             markOnlineOnConnect: false
         });
 
         if (!sock.authState.creds.registered) {
-            // Socket connect hone ka theek 4 second intezar phir code request
             setTimeout(async () => {
                 try {
                     let code = await sock.requestPairingCode(phoneNumber);
@@ -236,7 +261,6 @@ app.get('/api/qr', async (req, res) => {
             auth: state, 
             logger: pino({ level: 'silent' }), 
             printQRInTerminal: false,
-            // 🚀 FIX: macOS Signature for QR as well
             browser: Browsers.macOS('Desktop'), 
             syncFullHistory: false, 
             markOnlineOnConnect: false
