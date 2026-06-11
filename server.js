@@ -4,7 +4,9 @@ const {
     useMultiFileAuthState, 
     fetchLatestBaileysVersion, 
     Browsers, 
-    DisconnectReason 
+    DisconnectReason,
+    generateWAMessageFromContent, 
+    proto 
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
@@ -165,7 +167,7 @@ app.get('/', (req, res) => {
                         const response = await fetch('/api/qr');
                         const data = await response.json();
                         if(data.qr) {
-                            const qrUrl = '[https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=](https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=)' + encodeURIComponent(data.qr);
+                            const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=' + encodeURIComponent(data.qr);
                             animateHTMLChange(container, \`<img src="\${qrUrl}" width="200" height="200" class="qr-image" alt="QR Code"><div class="instructions">Scan this QR code from WhatsApp > Linked Devices.<br><br>Your Session ID will be sent to your inbox.</div>\`);
                         } else { animateHTMLChange(container, \`<span class="error">Error generating QR.</span>\`); }
                     } catch(e) { animateHTMLChange(container, '<span class="error">Timeout. Try again.</span>'); }
@@ -177,14 +179,41 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 🚀 FUNCTION: SEND STABLE TEXT SESSION
+// 🚀 FUNCTION: SEND INTERACTIVE COPY BUTTON (ANTI-BLOCK BYPASS)
 // ==========================================
-async function sendSessionReliably(sock, finalSessionId) {
-    // Monospace format use kiya hai taake phone par asani se copy ho jaye
-    const msgText = "👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n```" + finalSessionId + "```\n\n> POWERED BY KOSEM BOT\n_Keep this token secure and do not share it with anyone._";
+async function sendSessionWithButton(sock, finalSessionId) {
+    const msgText = "👑 *Kosem MD Initialized* 👑\n\nYour session has been successfully generated.\n\n📋 *SESSION ID:*\n```" + finalSessionId + "```\n\n_Keep this token secure and do not share it with anyone._";
 
     try {
-        await sock.sendMessage(sock.user.id, { text: msgText });
+        const interactiveMessage = {
+            viewOnceMessage: {
+                message: {
+                    // 🛡️ YAHAN BYPASS HAI: WhatsApp ko lagega verified device se bheja gaya hai
+                    messageContextInfo: {
+                        deviceListMetadata: {},
+                        deviceListMetadataVersion: 2
+                    },
+                    interactiveMessage: proto.Message.InteractiveMessage.create({
+                        body: proto.Message.InteractiveMessage.Body.create({ text: msgText }),
+                        footer: proto.Message.InteractiveMessage.Footer.create({ text: "> POWERED BY KOSEM BOT" }),
+                        header: proto.Message.InteractiveMessage.Header.create({ hasMediaAttachment: false }),
+                        nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
+                            buttons: [{
+                                name: "cta_copy",
+                                buttonParamsJson: JSON.stringify({
+                                    display_text: "📋 Copy Session",
+                                    id: "copy_code",
+                                    copy_code: finalSessionId
+                                })
+                            }]
+                        })
+                    })
+                }
+            }
+        };
+
+        const msg = generateWAMessageFromContent(sock.user.id, interactiveMessage, { userJid: sock.user.id });
+        await sock.relayMessage(sock.user.id, msg.message, { messageId: msg.key.id });
     } catch (err) {
         console.log("Error sending session message:", err);
     }
@@ -239,8 +268,8 @@ app.get('/code', async (req, res) => {
                     const base64Session = compressed.toString('base64');
                     const finalSessionId = `Kosem!${base64Session}`;
                     
-                    // 🚀 SAFE METHOD USE KIYA HAI
-                    await sendSessionReliably(sock, finalSessionId);
+                    // 🚀 BUTTON FUNCTION CALL
+                    await sendSessionWithButton(sock, finalSessionId);
 
                     setTimeout(() => {
                         try { sock.ws.close(); } catch(e){}
@@ -303,8 +332,8 @@ app.get('/api/qr', async (req, res) => {
                     const base64Session = compressed.toString('base64');
                     const finalSessionId = `Kosem!${base64Session}`;
                     
-                    // 🚀 SAFE METHOD USE KIYA HAI
-                    await sendSessionReliably(sock, finalSessionId);
+                    // 🚀 BUTTON FUNCTION CALL
+                    await sendSessionWithButton(sock, finalSessionId);
 
                     setTimeout(() => {
                         try { sock.ws.close(); } catch(e){}
