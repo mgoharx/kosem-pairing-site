@@ -35,7 +35,7 @@ app.get('/', (req, res) => {
                 p { color: rgba(255, 255, 255, 0.5); font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
                 
                 .toggle-box { display: flex; background: rgba(0, 0, 0, 0.4); border-radius: 12px; margin-bottom: 25px; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); }
-                .toggle-btn { flex: 1; padding: 12px; cursor: pointer; color: rgba(255,255,255,0.4); font-weight: 600; font-size: 14px; z-index: 2; position: relative; }
+                .toggle-btn { flex: 1; padding: 12px; cursor: pointer; color: rgba(255,255,255,0.4); font-weight: 600; font-size: 14px; z-index: 2; position: relative; -webkit-tap-highlight-color: transparent; user-select: none; }
                 .toggle-btn.active { color: #ffffff; }
                 .toggle-bg { position: absolute; top: 0; left: 0; width: 50%; height: 100%; background: rgba(255, 255, 255, 0.12); border-radius: 12px; z-index: 1; transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
 
