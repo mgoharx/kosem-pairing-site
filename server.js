@@ -314,6 +314,13 @@ app.get('/api/qr', async (req, res) => {
     });
 });
 
+app.get('/ping', (req, res) => res.send('Pong! Kosem Server is awake.'));
+
 app.listen(PORT, () => {
     console.log(`🚀 Kosem Pairing Server live on port ${PORT}`);
+    
+    // Internal Keep-Alive (Har 10 minute ping)
+    setInterval(() => {
+        console.log("⏱️ Keep-Alive Ping triggered to prevent sleep.");
+    }, 10 * 60 * 1000); 
 });
