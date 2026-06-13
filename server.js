@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Kosem Pairing System</title>
             <style>
-                body, html { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #111111, #000000, #1a1a1a); color: #ffffff; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+                body, html { margin: 0; padding: 0; min-height: 100vh; width: 100vw; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #111111, #000000, #1a1a1a); background-attachment: fixed; color: #ffffff; display: flex; justify-content: center; align-items: center; overflow: hidden; }
                 .circle1, .circle2 { position: absolute; border-radius: 50%; filter: blur(90px); z-index: 0; animation: float 8s ease-in-out infinite alternate; }
                 .circle1 { width: 350px; height: 350px; background: rgba(255, 255, 255, 0.04); top: -10%; left: -10%; }
                 .circle2 { width: 400px; height: 400px; background: rgba(255, 255, 255, 0.06); bottom: -10%; right: -10%; animation-delay: -4s; }
