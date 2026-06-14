@@ -4,6 +4,7 @@ const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+const { spawn } = require('child_process'); // Background mein bot chalane ke liye
 
 // 🛡️ ANTI-CRASH SYSTEM
 process.on('uncaughtException', (err) => console.error('Uncaught Exception:', err.message));
@@ -14,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// 🌐 KOSEM PREMIUM FRONTEND
+// 🌐 KOSEM PREMIUM FRONTEND + PANEL
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -22,7 +23,7 @@ app.get('/', (req, res) => {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-            <title>Kosem Pairing System</title>
+            <title>Kosem Bot Panel</title>
             <style>
                 body, html { margin: 0; padding: 0; min-height: 100vh; width: 100vw; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #111111, #000000, #1a1a1a); background-attachment: fixed; color: #ffffff; display: flex; justify-content: center; align-items: center; overflow: hidden; }
                 .circle1, .circle2 { position: absolute; border-radius: 50%; filter: blur(90px); z-index: 0; animation: float 8s ease-in-out infinite alternate; }
@@ -30,19 +31,18 @@ app.get('/', (req, res) => {
                 .circle2 { width: 400px; height: 400px; background: rgba(255, 255, 255, 0.06); bottom: -10%; right: -10%; animation-delay: -4s; }
                 @keyframes float { 0% { transform: translateY(0); } 100% { transform: translateY(20px); } }
 
-                .glass-card { position: relative; z-index: 1; width: 100%; max-width: 360px; padding: 40px 25px; background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 40px 80px -15px rgba(0, 0, 0, 0.8); text-align: center; box-sizing: border-box; transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); overflow: hidden; }
+                .glass-card { position: relative; z-index: 1; width: 100%; max-width: 380px; padding: 40px 25px; background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 40px 80px -15px rgba(0, 0, 0, 0.8); text-align: center; box-sizing: border-box; transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); overflow: hidden; }
                 h2 { margin: 0 0 10px; font-size: 28px; font-weight: 700; letter-spacing: 1px; }
                 p { color: rgba(255, 255, 255, 0.5); font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
                 
                 .toggle-box { display: flex; background: rgba(0, 0, 0, 0.4); border-radius: 12px; margin-bottom: 25px; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); }
-                .toggle-btn { flex: 1; padding: 12px; cursor: pointer; color: rgba(255,255,255,0.4); font-weight: 600; font-size: 14px; z-index: 2; position: relative; -webkit-tap-highlight-color: transparent; user-select: none; }
+                .toggle-btn { flex: 1; padding: 12px; cursor: pointer; color: rgba(255,255,255,0.4); font-weight: 600; font-size: 13px; z-index: 2; position: relative; -webkit-tap-highlight-color: transparent; user-select: none; }
                 .toggle-btn.active { color: #ffffff; }
-                .toggle-bg { position: absolute; top: 0; left: 0; width: 50%; height: 100%; background: rgba(255, 255, 255, 0.12); border-radius: 12px; z-index: 1; transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
+                .toggle-bg { position: absolute; top: 0; left: 0; width: 33.33%; height: 100%; background: rgba(255, 255, 255, 0.12); border-radius: 12px; z-index: 1; transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
 
                 input { width: 100%; padding: 16px; margin-bottom: 20px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: white; text-align: center; outline: none; box-sizing: border-box; transition: all 0.3s ease; }
                 input:focus { background: rgba(0, 0, 0, 0.5); border-color: rgba(255, 255, 255, 0.3); box-shadow: 0 0 15px rgba(255, 255, 255, 0.05); }
-                input::-webkit-outer-spin-button,
-                input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+                input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
                 input[type=number] { -moz-appearance: textfield; }
                 
                 .action-btn { width: 100%; padding: 16px; background: #ffffff; color: #000000; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease; }
@@ -53,33 +53,43 @@ app.get('/', (req, res) => {
                 .tab-content.active { display: block; }
                 .tab-content.show { opacity: 1; transform: translateY(0); }
 
-                #code-container, #qr-result { margin-top: 30px; }
+                #code-container, #qr-result, #deploy-result { margin-top: 25px; }
                 .code-box { font-size: 32px; font-weight: bold; letter-spacing: 6px; background: rgba(0, 0, 0, 0.4); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); display: inline-block; margin-bottom: 15px; color: #fff; }
                 .qr-image { border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); padding: 10px; background: white; margin-bottom: 15px; }
                 .instructions { font-size: 13px; color: rgba(255, 255, 255, 0.4); line-height: 1.5; }
                 .loading { color: #cccccc; font-weight: 500; animation: pulse 1.5s infinite; }
                 .error { color: #ff5555; font-weight: 500; }
+                .success { color: #50fa7b; font-weight: 600; font-size: 16px; }
                 @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
             </style>
         </head>
         <body>
             <div class="circle1"></div><div class="circle2"></div>
             <div class="glass-card" id="main-card">
-                <h2>Kosem Bot</h2>
-                <p>Choose a method to link your device securely.</p>
+                <h2>Kosem Panel</h2>
+                <p>Link your device or deploy bot directly.</p>
                 <div class="toggle-box">
                     <div class="toggle-bg" id="toggle-bg"></div>
-                    <div class="toggle-btn active" id="btn-phone" onclick="switchTab('phone')">Phone Number</div>
-                    <div class="toggle-btn" id="btn-qr" onclick="switchTab('qr')">QR Code</div>
+                    <div class="toggle-btn active" id="btn-phone" onclick="switchTab('phone', 0)">Phone</div>
+                    <div class="toggle-btn" id="btn-qr" onclick="switchTab('qr', 1)">QR Code</div>
+                    <div class="toggle-btn" id="btn-deploy" onclick="switchTab('deploy', 2)">Deploy</div>
                 </div>
+                
                 <div id="section-phone" class="tab-content active show">
                     <input type="number" id="number" placeholder="e.g. 923001234567">
                     <button class="action-btn" onclick="getPairCode()">Generate Code</button>
                     <div id="code-container"></div>
                 </div>
+                
                 <div id="section-qr" class="tab-content">
                     <button class="action-btn" onclick="getQRCode()">Generate QR</button>
                     <div id="qr-result"></div>
+                </div>
+
+                <div id="section-deploy" class="tab-content">
+                    <input type="text" id="session-id" placeholder="Paste Session ID (Kosem!...)">
+                    <button class="action-btn" onclick="deployBot()">Start Bot</button>
+                    <div id="deploy-result"></div>
                 </div>
             </div>
 
@@ -97,26 +107,19 @@ app.get('/', (req, res) => {
                     setTimeout(() => { card.style.height = 'auto'; }, 400);
                 }
 
-                function switchTab(tab) {
-                    const phoneSection = document.getElementById('section-phone');
-                    const qrSection = document.getElementById('section-qr');
-                    const btnPhone = document.getElementById('btn-phone');
-                    const btnQr = document.getElementById('btn-qr');
-                    const toggleBg = document.getElementById('toggle-bg');
-                    const card = document.getElementById('main-card');
-
-                    const targetSection = tab === 'phone' ? phoneSection : qrSection;
+                function switchTab(tab, index) {
+                    const sections = { 'phone': 'section-phone', 'qr': 'section-qr', 'deploy': 'section-deploy' };
+                    const btns = { 'phone': 'btn-phone', 'qr': 'btn-qr', 'deploy': 'btn-deploy' };
+                    
+                    const targetSection = document.getElementById(sections[tab]);
                     const activeSection = document.querySelector('.tab-content.show');
                     if (activeSection === targetSection) return;
 
-                    if (tab === 'phone') {
-                        toggleBg.style.transform = 'translateX(0)';
-                        btnPhone.classList.add('active'); btnQr.classList.remove('active');
-                    } else {
-                        toggleBg.style.transform = 'translateX(100%)';
-                        btnQr.classList.add('active'); btnPhone.classList.remove('active');
-                    }
+                    document.getElementById('toggle-bg').style.transform = \`translateX(\${index * 100}%)\`;
+                    Object.values(btns).forEach(id => document.getElementById(id).classList.remove('active'));
+                    document.getElementById(btns[tab]).classList.add('active');
 
+                    const card = document.getElementById('main-card');
                     const startHeight = card.offsetHeight;
                     card.style.height = startHeight + 'px';
                     activeSection.classList.remove('show');
@@ -126,6 +129,7 @@ app.get('/', (req, res) => {
                         targetSection.classList.add('active');
                         document.getElementById('code-container').innerHTML = '';
                         document.getElementById('qr-result').innerHTML = '';
+                        document.getElementById('deploy-result').innerHTML = '';
                         
                         card.style.height = 'auto';
                         const targetHeight = card.offsetHeight;
@@ -150,11 +154,7 @@ app.get('/', (req, res) => {
                         const response = await fetch('/code?number=' + num);
                         const data = await response.json();
                         if(data.code) {
-                            // 🚀 BOT GITHUB LINK UPDATE HO GAYA
-                            const repoUrl = "https://github.com/mgoharx/Kosem-Bot"; 
-                            const deployLink = \`https://render.com/deploy?repo=\${repoUrl}\`;
-                            
-                            animateHTMLChange(container, \`<div class="code-box">\${data.code}</div><div class="instructions">Open WhatsApp > Linked Devices > Link with phone number instead.<br><br><b>Session ID will be sent to your WhatsApp.</b></div><br><a href="\${deployLink}" target="_blank" style="display:inline-block; margin-top:15px; padding:12px 20px; background:#ffffff; color:#000000; text-decoration:none; border-radius:12px; font-weight:bold; width:100%; box-sizing:border-box; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease;">🚀 Deploy Bot Now</a>\`);
+                            animateHTMLChange(container, \`<div class="code-box">\${data.code}</div><div class="instructions">Open WhatsApp > Linked Devices > Link with phone number instead.<br><br><b>Copy Session ID from WhatsApp & Go to Deploy Tab!</b></div>\`);
                         } else { animateHTMLChange(container, \`<span class="error">Error: \${data.error}</span>\`); }
                     } catch(e) { animateHTMLChange(container, '<span class="error">Connection timeout. Please try again.</span>'); }
                 }
@@ -166,20 +166,76 @@ app.get('/', (req, res) => {
                         const response = await fetch('/api/qr');
                         const data = await response.json();
                         if(data.qr) {
-                            // 🚀 BOT GITHUB LINK UPDATE HO GAYA
-                            const repoUrl = "https://github.com/mgoharx/Kosem-Bot"; 
-                            const deployLink = \`https://render.com/deploy?repo=\${repoUrl}\`;
-                            
                             const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=' + encodeURIComponent(data.qr);
-                            animateHTMLChange(container, \`<img src="\${qrUrl}" width="200" height="200" class="qr-image" alt="QR Code"><div class="instructions">Scan this QR code from WhatsApp > Linked Devices.<br><br><b>Your Session ID will be sent to your inbox.</b></div><br><a href="\${deployLink}" target="_blank" style="display:inline-block; margin-top:15px; padding:12px 20px; background:#ffffff; color:#000000; text-decoration:none; border-radius:12px; font-weight:bold; width:100%; box-sizing:border-box; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease;">🚀 Deploy Bot Now</a>\`);
+                            animateHTMLChange(container, \`<img src="\${qrUrl}" width="200" height="200" class="qr-image" alt="QR Code"><div class="instructions">Scan this QR code from WhatsApp > Linked Devices.<br><br><b>Copy Session ID from WhatsApp & Go to Deploy Tab!</b></div>\`);
                         } else { animateHTMLChange(container, \`<span class="error">Error generating QR.</span>\`); }
                     } catch(e) { animateHTMLChange(container, '<span class="error">Timeout. Try again.</span>'); }
+                }
+
+                async function deployBot() {
+                    const sid = document.getElementById('session-id').value;
+                    const container = document.getElementById('deploy-result');
+                    if(!sid) return animateHTMLChange(container, '<span class="error">Please paste the Session ID.</span>');
+                    
+                    animateHTMLChange(container, '<span class="loading">Deploying Bot in Background...</span>');
+                    try {
+                        const response = await fetch('/deploy-bot', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ sessionId: sid })
+                        });
+                        const data = await response.json();
+                        if(data.success) {
+                            animateHTMLChange(container, \`<span class="success">✅ \${data.message}</span><br><br><span class="instructions">You can now test your bot on WhatsApp!</span>\`);
+                        } else { 
+                            animateHTMLChange(container, \`<span class="error">❌ \${data.message}</span>\`); 
+                        }
+                    } catch(e) { animateHTMLChange(container, '<span class="error">Server error. Try again.</span>'); }
                 }
             </script>
         </body>
         </html>
     `);
 });
+
+// ==========================================
+// 🚀 API: DEPLOY & START BOT (BACKGROUND PROCESS)
+// ==========================================
+app.post('/deploy-bot', async (req, res) => {
+    const { sessionId } = req.body;
+    
+    if (!sessionId || !sessionId.startsWith('Kosem!')) {
+        return res.json({ success: false, message: "Invalid Session ID. Must start with Kosem!" });
+    }
+
+    try {
+        // 1. Decode Session ID
+        const b64data = sessionId.split('!')[1].replace('...', '');
+        const compressedData = Buffer.from(b64data, 'base64');
+        const decompressedData = zlib.gunzipSync(compressedData);
+
+        // 2. Save it to 'session' folder
+        const sessionFolder = path.join(__dirname, 'session');
+        if (!fs.existsSync(sessionFolder)) {
+            fs.mkdirSync(sessionFolder, { recursive: true });
+        }
+        fs.writeFileSync(path.join(sessionFolder, 'creds.json'), decompressedData, 'utf8');
+
+        // 3. Start index.js in background (bina crash huye)
+        const botProcess = spawn('node', ['index.js'], { 
+            detached: true, 
+            stdio: 'ignore', // Terminal output ko ignore karega taake web server par load na pare
+            env: { ...process.env }
+        });
+        botProcess.unref(); // Process ko independent kar dega
+
+        res.json({ success: true, message: "Bot Successfully Started!" });
+    } catch (e) {
+        console.error("Deploy Error:", e);
+        res.json({ success: false, message: "Failed to deploy: " + e.message });
+    }
+});
+
 
 // ==========================================
 // 📡 API: SMART PAIRING CODE GENERATOR
@@ -230,7 +286,6 @@ app.get('/code', async (req, res) => {
                     const base64Session = compressed.toString('base64');
                     const finalSessionId = `Kosem!${base64Session}`;
                     
-                    // 🚀 BHEJNE WALA HISSA UPDATE HO GAYA (Sirf Session ID)
                     await sock.sendMessage(sock.user.id, { text: finalSessionId });
 
                     setTimeout(() => {
@@ -240,7 +295,6 @@ app.get('/code', async (req, res) => {
                 } catch (e) { console.error(e); }
             } else if (connection === 'close') {
                 const reason = lastDisconnect?.error?.output?.statusCode;
-                
                 if (reason === DisconnectReason.restartRequired || reason === 515 || reason === 408 || reason === 503) {
                     startKosem(); 
                 } else {
@@ -264,64 +318,4 @@ app.get('/api/qr', async (req, res) => {
     const tempSessionName = `kosem_qr_${Date.now()}`;
     const sessionPath = path.join(__dirname, tempSessionName);
 
-    async function startKosemQR() {
-        const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-        const { version } = await fetchLatestBaileysVersion();
-
-        const sock = makeWASocket({
-            version, 
-            auth: state, 
-            logger: pino({ level: 'silent' }), 
-            printQRInTerminal: false,
-            browser: ['Ubuntu', 'Chrome', '20.0.04'], 
-            syncFullHistory: false, 
-            markOnlineOnConnect: false
-        });
-
-        sock.ev.on('creds.update', saveCreds);
-
-        sock.ev.on('connection.update', async (update) => {
-            const { qr, connection, lastDisconnect } = update;
-            
-            if (qr && !res.headersSent) {
-                res.json({ qr: qr });
-            }
-
-            if (connection === 'open') {
-                try {
-                    const credsData = fs.readFileSync(path.join(sessionPath, 'creds.json'));
-                    const compressed = zlib.gzipSync(credsData);
-                    const base64Session = compressed.toString('base64');
-                    const finalSessionId = `Kosem!${base64Session}`;
-                    
-                    // 🚀 BHEJNE WALA HISSA UPDATE HO GAYA (Sirf Session ID)
-                    await sock.sendMessage(sock.user.id, { text: finalSessionId });
-
-                    setTimeout(() => {
-                        try { sock.ws.close(); } catch(e){}
-                        try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
-                    }, 5000);
-                } catch (e) { console.error(e); }
-            } else if (connection === 'close') {
-                const reason = lastDisconnect?.error?.output?.statusCode;
-                
-                if (reason === DisconnectReason.restartRequired || reason === 515 || reason === 408 || reason === 503) {
-                    startKosemQR(); 
-                } else {
-                    if (!res.headersSent) res.json({ error: 'Failed to generate QR.' });
-                    setTimeout(() => {
-                        try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
-                    }, 5000);
-                }
-            }
-        });
-    }
-
-    startKosemQR().catch(e => {
-        if (!res.headersSent) res.status(500).json({ error: 'Server error' });
-    });
-});
-
-app.listen(PORT, () => {
-    console.log(`🚀 Kosem Pairing Server live on port ${PORT}`);
-});
+    async function startKosemQR
