@@ -8,8 +8,7 @@
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.6.0",
-    "express": "^4.18.2",
-    "pino": "^8.14.1",
+    "pino": "^8.0.0",
+    "express": "^4.18.2",  <-- Yeh line lazmi honi chahiye
     "qrcode-terminal": "^0.12.0"
   }
-}
