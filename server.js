@@ -30,7 +30,7 @@ app.get('/', (req, res) => {
                 .circle2 { width: 400px; height: 400px; background: rgba(255, 255, 255, 0.06); bottom: -10%; right: -10%; animation-delay: -4s; }
                 @keyframes float { 0% { transform: translateY(0); } 100% { transform: translateY(20px); } }
 
-                .glass-card { position: relative; z-index: 1; width: 100%; max-width: 420px; padding: 40px 30px; background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 40px 80px -15px rgba(0, 0, 0, 0.8); text-align: center; box-sizing: border-box; transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); overflow: hidden; }
+                .glass-card { position: relative; z-index: 1; width: 100%; max-width: 360px; padding: 40px 25px; background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 40px 80px -15px rgba(0, 0, 0, 0.8); text-align: center; box-sizing: border-box; transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); overflow: hidden; }
                 h2 { margin: 0 0 10px; font-size: 28px; font-weight: 700; letter-spacing: 1px; }
                 p { color: rgba(255, 255, 255, 0.5); font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
                 
