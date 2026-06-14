@@ -21,7 +21,7 @@ app.get('/', (req, res) => {
         <html lang="en">
         <head>
             <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
             <title>Kosem Pairing System</title>
             <style>
                 body, html { margin: 0; padding: 0; min-height: 100vh; width: 100vw; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: linear-gradient(135deg, #111111, #000000, #1a1a1a); background-attachment: fixed; color: #ffffff; display: flex; justify-content: center; align-items: center; overflow: hidden; }
