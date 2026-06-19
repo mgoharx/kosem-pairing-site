@@ -1,5 +1,5 @@
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, Browsers, DisconnectReason } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
@@ -17,11 +17,11 @@ app.use(express.json());
 // 📝 LIVE LOGS SYSTEM
 const clients = [];
 function sendLog(msg) {
-    console.log(msg); // Terminal mein
-    clients.forEach(c => c.write(`data: ${msg}\n\n`)); // Website par
+    console.log(msg); 
+    clients.forEach(c => c.write(`data: ${msg}\n\n`)); 
 }
 
-// 🌐 KOSEM PREMIUM FRONTEND + PANEL
+// 🌐 KOSEM ORIGINAL PREMIUM FRONTEND + PANEL
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -67,10 +67,8 @@ app.get('/', (req, res) => {
                 .error { color: #ff5555; font-weight: 500; }
                 .success { color: #50fa7b; font-weight: 600; font-size: 16px; }
                 
-                /* LIVE LOGS CSS */
                 #live-logs { display: none; margin-top: 20px; background: rgba(0, 0, 0, 0.5); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); height: 160px; overflow-y: auto; font-family: monospace; font-size: 12px; color: #50fa7b; text-align: left; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
                 #live-logs.show { display: block; }
-                
                 @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
             </style>
         </head>
@@ -78,7 +76,7 @@ app.get('/', (req, res) => {
             <div class="circle1"></div><div class="circle2"></div>
             <div class="glass-card" id="main-card">
                 <h2>Kosem Panel</h2>
-                <p>Link your device or deploy bot directly.</p>
+                <p>Choose a method to link your device securely.</p>
                 <div class="toggle-box">
                     <div class="toggle-bg" id="toggle-bg"></div>
                     <div class="toggle-btn active" id="btn-phone" onclick="switchTab('phone', 0)">Phone</div>
@@ -189,11 +187,9 @@ app.get('/', (req, res) => {
                     const sid = document.getElementById('session-id').value;
                     const container = document.getElementById('deploy-result');
                     const logs = document.getElementById('live-logs');
-                    
                     if(!sid) return animateHTMLChange(container, '<span class="error">Please paste the Session ID.</span>');
                     
                     animateHTMLChange(container, '<span class="loading">Deploying Bot in Background...</span>');
-                    
                     try {
                         const response = await fetch('/deploy-bot', {
                             method: 'POST',
@@ -201,21 +197,16 @@ app.get('/', (req, res) => {
                             body: JSON.stringify({ sessionId: sid })
                         });
                         const data = await response.json();
-                        
                         if(data.success) {
                             animateHTMLChange(container, \`<span class="success">✅ \${data.message}</span>\`);
                             setTimeout(() => {
                                 logs.classList.add('show');
-                                const card = document.getElementById('main-card');
-                                card.style.height = 'auto'; // Adjust height for logs box
+                                document.getElementById('main-card').style.height = 'auto';
                             }, 500);
-                        } else { 
-                            animateHTMLChange(container, \`<span class="error">❌ \${data.message}</span>\`); 
-                        }
+                        } else { animateHTMLChange(container, \`<span class="error">❌ \${data.message}</span>\`); }
                     } catch(e) { animateHTMLChange(container, '<span class="error">Server error. Try again.</span>'); }
                 }
                 
-                // Live Logs Stream
                 const es = new EventSource('/logs');
                 es.onmessage = e => { 
                     const logBox = document.getElementById('live-logs'); 
@@ -243,11 +234,9 @@ app.get('/logs', (req, res) => {
 // 🚀 API: DEPLOY BOT
 app.post('/deploy-bot', async (req, res) => {
     const { sessionId } = req.body;
-    
     if (!sessionId || !sessionId.startsWith('Kosem!')) {
-        return res.json({ success: false, message: "Invalid Session ID. Must start with Kosem!" });
+        return res.json({ success: false, message: "Invalid Session ID." });
     }
-
     try {
         sendLog("📥 Processing Session ID...");
         const b64data = sessionId.split('!')[1].replace('...', '');
@@ -255,16 +244,11 @@ app.post('/deploy-bot', async (req, res) => {
         const decompressedData = zlib.gunzipSync(compressedData);
 
         const sessionFolder = path.join(__dirname, 'session');
-        if (!fs.existsSync(sessionFolder)) {
-            fs.mkdirSync(sessionFolder, { recursive: true });
-        }
+        if (!fs.existsSync(sessionFolder)) fs.mkdirSync(sessionFolder, { recursive: true });
         fs.writeFileSync(path.join(sessionFolder, 'creds.json'), decompressedData, 'utf8');
 
         sendLog("⚙️ Starting Bot Process in Background...");
-        const botProcess = spawn('node', ['index.js'], { 
-            detached: true, 
-            env: { ...process.env }
-        });
+        const botProcess = spawn('node', ['index.js'], { detached: true, env: { ...process.env } });
         
         botProcess.stdout.on('data', data => sendLog(`[BOT] ${data.toString().trim()}`));
         botProcess.stderr.on('data', data => sendLog(`[ERROR] ${data.toString().trim()}`));
@@ -277,10 +261,12 @@ app.post('/deploy-bot', async (req, res) => {
     }
 });
 
-// 🔄 INTERNAL WHATSAPP HANDLER FOR SESSION GENERATION
+// 🔄 SAFE AUTH HANDLER (Deletes only on genuine permanent stream failure or completion)
 async function handleWhatsAppAuth(sock, sessionPath) {
     sock.ev.on('connection.update', async (update) => {
-        if (update.connection === 'open') {
+        const { connection, lastDisconnect } = update;
+        
+        if (connection === 'open') {
             try {
                 const credsData = fs.readFileSync(path.join(sessionPath, 'creds.json'));
                 const compressed = zlib.gzipSync(credsData);
@@ -293,10 +279,14 @@ async function handleWhatsAppAuth(sock, sessionPath) {
                     try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
                 }, 5000);
             } catch (e) { console.error(e); }
-        } else if (update.connection === 'close') {
-            setTimeout(() => {
-                try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
-            }, 5000);
+        } else if (connection === 'close') {
+            const reason = lastDisconnect?.error?.output?.statusCode;
+            // 🛡️ CRITICAL FIX: Don't delete session path if it's just a handshake/stream restart!
+            if (reason !== DisconnectReason.restartRequired && reason !== 515 && reason !== 408 && reason !== 503) {
+                setTimeout(() => {
+                    try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
+                }, 10000);
+            }
         }
     });
 }
@@ -318,7 +308,7 @@ app.get('/code', async (req, res) => {
         auth: state, 
         logger: pino({ level: 'silent' }), 
         printQRInTerminal: false,
-        browser: ['Ubuntu', 'Chrome', '20.0.04'], 
+        browser: Browsers.ubuntu('Chrome'), 
         syncFullHistory: false, 
         markOnlineOnConnect: false
     });
@@ -331,9 +321,7 @@ app.get('/code', async (req, res) => {
             let code = await sock.requestPairingCode(phoneNumber);
             code = code?.match(/.{1,4}/g)?.join('-') || code;
             res.json({ code });
-        } catch (err) {
-            res.json({ error: 'Failed to generate code.' });
-        }
+        } catch (err) { res.json({ error: 'Failed to generate code.' }); }
     }, 3000); 
 });
 
@@ -350,7 +338,7 @@ app.get('/api/qr', async (req, res) => {
         auth: state, 
         logger: pino({ level: 'silent' }), 
         printQRInTerminal: false,
-        browser: ['Ubuntu', 'Chrome', '20.0.04'], 
+        browser: Browsers.ubuntu('Chrome'), 
         syncFullHistory: false, 
         markOnlineOnConnect: false
     });
