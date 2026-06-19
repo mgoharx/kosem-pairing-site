@@ -12,6 +12,7 @@ process.on('unhandledRejection', (err) => console.error('Unhandled Rejection:', 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 app.use(express.json());
 
 // 📝 LIVE LOGS SYSTEM
@@ -21,7 +22,7 @@ function sendLog(msg) {
     clients.forEach(c => c.write(`data: ${msg}\n\n`)); 
 }
 
-// 🌐 KOSEM ORIGINAL PREMIUM FRONTEND + PANEL
+// 🌐 KOSEM PREMIUM FRONTEND + PANEL
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -48,7 +49,8 @@ app.get('/', (req, res) => {
 
                 input { width: 100%; padding: 16px; margin-bottom: 20px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: white; text-align: center; outline: none; box-sizing: border-box; transition: all 0.3s ease; }
                 input:focus { background: rgba(0, 0, 0, 0.5); border-color: rgba(255, 255, 255, 0.3); box-shadow: 0 0 15px rgba(255, 255, 255, 0.05); }
-                input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+                input::-webkit-outer-spin-button,
+                input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
                 input[type=number] { -moz-appearance: textfield; }
                 
                 .action-btn { width: 100%; padding: 16px; background: #ffffff; color: #000000; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s ease; }
@@ -75,7 +77,7 @@ app.get('/', (req, res) => {
         <body>
             <div class="circle1"></div><div class="circle2"></div>
             <div class="glass-card" id="main-card">
-                <h2>Kosem Panel</h2>
+                <h2>Kosem Bot</h2>
                 <p>Choose a method to link your device securely.</p>
                 <div class="toggle-box">
                     <div class="toggle-bg" id="toggle-bg"></div>
@@ -165,7 +167,7 @@ app.get('/', (req, res) => {
                         const response = await fetch('/code?number=' + num);
                         const data = await response.json();
                         if(data.code) {
-                            animateHTMLChange(container, \`<div class="code-box">\${data.code}</div><div class="instructions">Open WhatsApp > Linked Devices > Link with phone number instead.<br><br><b>Copy Session ID from WhatsApp & Go to Deploy Tab!</b></div>\`);
+                            animateHTMLChange(container, \`<div class="code-box">\${data.code}</div><div class="instructions">Open WhatsApp > Linked Devices > Link with phone number instead.<br><br><b>Session ID will be sent to your WhatsApp. Copy it & go to Deploy Tab!</b></div>\`);
                         } else { animateHTMLChange(container, \`<span class="error">Error: \${data.error}</span>\`); }
                     } catch(e) { animateHTMLChange(container, '<span class="error">Connection timeout. Please try again.</span>'); }
                 }
@@ -178,7 +180,7 @@ app.get('/', (req, res) => {
                         const data = await response.json();
                         if(data.qr) {
                             const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=' + encodeURIComponent(data.qr);
-                            animateHTMLChange(container, \`<img src="\${qrUrl}" width="200" height="200" class="qr-image" alt="QR Code"><div class="instructions">Scan this QR code from WhatsApp > Linked Devices.<br><br><b>Copy Session ID from WhatsApp & Go to Deploy Tab!</b></div>\`);
+                            animateHTMLChange(container, \`<img src="\${qrUrl}" width="200" height="200" class="qr-image" alt="QR Code"><div class="instructions">Scan this QR code from WhatsApp > Linked Devices.<br><br><b>Your Session ID will be sent to your inbox. Copy it & go to Deploy Tab!</b></div>\`);
                         } else { animateHTMLChange(container, \`<span class="error">Error generating QR.</span>\`); }
                     } catch(e) { animateHTMLChange(container, '<span class="error">Timeout. Try again.</span>'); }
                 }
@@ -206,7 +208,8 @@ app.get('/', (req, res) => {
                         } else { animateHTMLChange(container, \`<span class="error">❌ \${data.message}</span>\`); }
                     } catch(e) { animateHTMLChange(container, '<span class="error">Server error. Try again.</span>'); }
                 }
-                
+
+                // Live Logs Stream
                 const es = new EventSource('/logs');
                 es.onmessage = e => { 
                     const logBox = document.getElementById('live-logs'); 
@@ -219,7 +222,9 @@ app.get('/', (req, res) => {
     `);
 });
 
+// ==========================================
 // 📡 API: LIVE LOGS
+// ==========================================
 app.get('/logs', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -231,12 +236,16 @@ app.get('/logs', (req, res) => {
     });
 });
 
+// ==========================================
 // 🚀 API: DEPLOY BOT
+// ==========================================
 app.post('/deploy-bot', async (req, res) => {
     const { sessionId } = req.body;
+    
     if (!sessionId || !sessionId.startsWith('Kosem!')) {
-        return res.json({ success: false, message: "Invalid Session ID." });
+        return res.json({ success: false, message: "Invalid Session ID. Must start with Kosem!" });
     }
+
     try {
         sendLog("📥 Processing Session ID...");
         const b64data = sessionId.split('!')[1].replace('...', '');
@@ -244,11 +253,16 @@ app.post('/deploy-bot', async (req, res) => {
         const decompressedData = zlib.gunzipSync(compressedData);
 
         const sessionFolder = path.join(__dirname, 'session');
-        if (!fs.existsSync(sessionFolder)) fs.mkdirSync(sessionFolder, { recursive: true });
+        if (!fs.existsSync(sessionFolder)) {
+            fs.mkdirSync(sessionFolder, { recursive: true });
+        }
         fs.writeFileSync(path.join(sessionFolder, 'creds.json'), decompressedData, 'utf8');
 
         sendLog("⚙️ Starting Bot Process in Background...");
-        const botProcess = spawn('node', ['index.js'], { detached: true, env: { ...process.env } });
+        const botProcess = spawn('node', ['index.js'], { 
+            detached: true, 
+            env: { ...process.env }
+        });
         
         botProcess.stdout.on('data', data => sendLog(`[BOT] ${data.toString().trim()}`));
         botProcess.stderr.on('data', data => sendLog(`[ERROR] ${data.toString().trim()}`));
@@ -261,37 +275,9 @@ app.post('/deploy-bot', async (req, res) => {
     }
 });
 
-// 🔄 SAFE AUTH HANDLER (Deletes only on genuine permanent stream failure or completion)
-async function handleWhatsAppAuth(sock, sessionPath) {
-    sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect } = update;
-        
-        if (connection === 'open') {
-            try {
-                const credsData = fs.readFileSync(path.join(sessionPath, 'creds.json'));
-                const compressed = zlib.gzipSync(credsData);
-                const finalSessionId = `Kosem!${compressed.toString('base64')}`;
-                
-                await sock.sendMessage(sock.user.id, { text: finalSessionId });
-
-                setTimeout(() => {
-                    try { sock.ws.close(); } catch(e){}
-                    try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
-                }, 5000);
-            } catch (e) { console.error(e); }
-        } else if (connection === 'close') {
-            const reason = lastDisconnect?.error?.output?.statusCode;
-            // 🛡️ CRITICAL FIX: Don't delete session path if it's just a handshake/stream restart!
-            if (reason !== DisconnectReason.restartRequired && reason !== 515 && reason !== 408 && reason !== 503) {
-                setTimeout(() => {
-                    try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
-                }, 10000);
-            }
-        }
-    });
-}
-
+// ==========================================
 // 📡 API: SMART PAIRING CODE GENERATOR
+// ==========================================
 app.get('/code', async (req, res) => {
     let phoneNumber = req.query.number;
     if (!phoneNumber) return res.status(400).json({ error: 'Number is required' });
@@ -300,56 +286,135 @@ app.get('/code', async (req, res) => {
     const tempSessionName = `kosem_${Date.now()}`;
     const sessionPath = path.join(__dirname, tempSessionName);
 
-    const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-    const { version } = await fetchLatestBaileysVersion();
+    async function startKosem() {
+        const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+        const { version } = await fetchLatestBaileysVersion();
 
-    const sock = makeWASocket({
-        version, 
-        auth: state, 
-        logger: pino({ level: 'silent' }), 
-        printQRInTerminal: false,
-        browser: Browsers.ubuntu('Chrome'), 
-        syncFullHistory: false, 
-        markOnlineOnConnect: false
+        const sock = makeWASocket({
+            version, 
+            auth: state, 
+            logger: pino({ level: 'silent' }), 
+            printQRInTerminal: false,
+            browser: ['Ubuntu', 'Chrome', '20.0.04'], 
+            syncFullHistory: false, 
+            markOnlineOnConnect: false
+        });
+
+        sock.ev.on('creds.update', saveCreds);
+
+        if (!sock.authState.creds.registered && !res.headersSent) {
+            setTimeout(async () => {
+                try {
+                    let code = await sock.requestPairingCode(phoneNumber);
+                    code = code?.match(/.{1,4}/g)?.join('-') || code;
+                    res.json({ code });
+                } catch (err) {
+                    res.json({ error: 'Failed to generate code.' });
+                }
+            }, 3000); 
+        }
+
+        sock.ev.on('connection.update', async (update) => {
+            const { connection, lastDisconnect } = update;
+
+            if (connection === 'open') {
+                try {
+                    const credsData = fs.readFileSync(path.join(sessionPath, 'creds.json'));
+                    const compressed = zlib.gzipSync(credsData);
+                    const base64Session = compressed.toString('base64');
+                    const finalSessionId = `Kosem!${base64Session}`;
+                    
+                    // 🚀 Session ID send karna
+                    await sock.sendMessage(sock.user.id, { text: finalSessionId });
+
+                    setTimeout(() => {
+                        try { sock.ws.close(); } catch(e){}
+                        try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
+                    }, 5000);
+                } catch (e) { console.error(e); }
+            } else if (connection === 'close') {
+                const reason = lastDisconnect?.error?.output?.statusCode;
+                
+                // USER KI ORIGINAL LOGIC: Reconnect immediately if needed
+                if (reason === DisconnectReason.restartRequired || reason === 515 || reason === 408 || reason === 503) {
+                    startKosem(); 
+                } else {
+                    setTimeout(() => {
+                        try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
+                    }, 5000);
+                }
+            }
+        });
+    }
+
+    startKosem().catch(e => {
+        if (!res.headersSent) res.status(500).json({ error: 'Server error' });
     });
-
-    sock.ev.on('creds.update', saveCreds);
-    handleWhatsAppAuth(sock, sessionPath);
-
-    setTimeout(async () => {
-        try {
-            let code = await sock.requestPairingCode(phoneNumber);
-            code = code?.match(/.{1,4}/g)?.join('-') || code;
-            res.json({ code });
-        } catch (err) { res.json({ error: 'Failed to generate code.' }); }
-    }, 3000); 
 });
 
+// ==========================================
 // 📡 API: SMART QR CODE GENERATOR
+// ==========================================
 app.get('/api/qr', async (req, res) => {
     const tempSessionName = `kosem_qr_${Date.now()}`;
     const sessionPath = path.join(__dirname, tempSessionName);
 
-    const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-    const { version } = await fetchLatestBaileysVersion();
+    async function startKosemQR() {
+        const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+        const { version } = await fetchLatestBaileysVersion();
 
-    const sock = makeWASocket({
-        version, 
-        auth: state, 
-        logger: pino({ level: 'silent' }), 
-        printQRInTerminal: false,
-        browser: Browsers.ubuntu('Chrome'), 
-        syncFullHistory: false, 
-        markOnlineOnConnect: false
-    });
+        const sock = makeWASocket({
+            version, 
+            auth: state, 
+            logger: pino({ level: 'silent' }), 
+            printQRInTerminal: false,
+            browser: ['Ubuntu', 'Chrome', '20.0.04'], 
+            syncFullHistory: false, 
+            markOnlineOnConnect: false
+        });
 
-    sock.ev.on('creds.update', saveCreds);
-    handleWhatsAppAuth(sock, sessionPath);
+        sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('connection.update', (update) => {
-        if (update.qr && !res.headersSent) {
-            res.json({ qr: update.qr });
-        }
+        sock.ev.on('connection.update', async (update) => {
+            const { qr, connection, lastDisconnect } = update;
+            
+            if (qr && !res.headersSent) {
+                res.json({ qr: qr });
+            }
+
+            if (connection === 'open') {
+                try {
+                    const credsData = fs.readFileSync(path.join(sessionPath, 'creds.json'));
+                    const compressed = zlib.gzipSync(credsData);
+                    const base64Session = compressed.toString('base64');
+                    const finalSessionId = `Kosem!${base64Session}`;
+                    
+                    // 🚀 Session ID send karna
+                    await sock.sendMessage(sock.user.id, { text: finalSessionId });
+
+                    setTimeout(() => {
+                        try { sock.ws.close(); } catch(e){}
+                        try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
+                    }, 5000);
+                } catch (e) { console.error(e); }
+            } else if (connection === 'close') {
+                const reason = lastDisconnect?.error?.output?.statusCode;
+                
+                // USER KI ORIGINAL LOGIC: Reconnect immediately if needed
+                if (reason === DisconnectReason.restartRequired || reason === 515 || reason === 408 || reason === 503) {
+                    startKosemQR(); 
+                } else {
+                    if (!res.headersSent) res.json({ error: 'Failed to generate QR.' });
+                    setTimeout(() => {
+                        try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch(e){}
+                    }, 5000);
+                }
+            }
+        });
+    }
+
+    startKosemQR().catch(e => {
+        if (!res.headersSent) res.status(500).json({ error: 'Server error' });
     });
 });
 
